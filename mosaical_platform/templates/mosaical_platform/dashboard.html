@@ -2,7 +2,7 @@
 
 {% block title %}Dashboard - Mosaical{% endblock %}
 
-{% block extra_css %}
+{% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
@@ -193,10 +193,85 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <canvas id="portfolioChart" width="400" height="200"></canvas>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="portfolioChart"></canvas>
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <canvas id="loanHealthChart" width="400" height="200"></canvas>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="loanHealthChart"></canvas>
+                        </div>
+                    </div>
+                </div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Portfolio Performance Over Time -->
+    <div class="col-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-trending-up me-2"></i>Portfolio Performance</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 250px; position: relative;">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Portfolio Metrics -->
+    <div class="col-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-calculator me-2"></i>Portfolio Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <h4 class="text-primary">
+                                {% with total_value=0 %}
+                                    {% for nft in user_nfts %}
+                                        {% if nft.estimated_value %}
+                                            {{ total_value|add:nft.estimated_value|floatformat:2 }}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endwith %} vBTC
+                            </h4>
+                            <small class="text-muted">Total NFT Value</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <h4 class="text-success">{{ profile.vbtc_balance|floatformat:4 }} vBTC</h4>
+                            <small class="text-muted">Available Balance</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <h4 class="text-warning">
+                                {% with total_debt=0 %}
+                                    {% for loan in user_loans %}
+                                        {{ total_debt|add:loan.current_debt|floatformat:4 }}
+                                    {% endfor %}
+                                {% endwith %} vBTC
+                            </h4>
+                            <small class="text-muted">Total Debt</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <h4 class="{% if user_loans %}{% if user_loans.0.ltv_ratio >= 80 %}text-danger{% elif user_loans.0.ltv_ratio >= 60 %}text-warning{% else %}text-success{% endif %}{% else %}text-success{% endif %}">
+                                {% if user_loans %}
+                                    {{ user_loans.0.ltv_ratio|floatformat:1 }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </h4>
+                            <small class="text-muted">Average LTV</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -246,83 +321,212 @@
     </div>
 </div>
 <script>
-// Portfolio Distribution Chart
-const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
-const portfolioChart = new Chart(portfolioCtx, {
-    type: 'doughnut',
-    data: {
-        labels: [
+document.addEventListener('DOMContentLoaded', function() {
+    // Portfolio Distribution Chart
+    const portfolioCtx = document.getElementById('portfolioChart');
+    if (portfolioCtx) {
+        const portfolioLabels = [
             {% for nft in user_nfts %}
-                '{{ nft.collection.name }}',
+                '{{ nft.collection.name }} #{{ nft.token_id }}',
             {% endfor %}
-            'vBTC Balance'
-        ],
-        datasets: [{
-            data: [
-                {% for nft in user_nfts %}
-                    {{ nft.estimated_value }},
-                {% endfor %}
-                {{ profile.vbtc_balance }}
-            ],
-            backgroundColor: [
-                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Portfolio Distribution'
-            }
+            {% if profile.vbtc_balance > 0 %}'vBTC Balance'{% endif %}
+        ];
+        
+        const portfolioData = [
+            {% for nft in user_nfts %}
+                {{ nft.estimated_value|default:0 }},
+            {% endfor %}
+            {% if profile.vbtc_balance > 0 %}{{ profile.vbtc_balance|default:0 }}{% endif %}
+        ];
+
+        // Only create chart if we have data
+        if (portfolioData.length > 0 && portfolioData.some(val => val > 0)) {
+            new Chart(portfolioCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: portfolioLabels,
+                    datasets: [{
+                        data: portfolioData,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+                            '#FF9F40', '#4BC0C0', '#9966FF', '#FFCE56'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Portfolio Distribution',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            portfolioCtx.getContext('2d');
+            portfolioCtx.parentElement.innerHTML = '<div class="text-center p-4"><i class="fas fa-chart-pie fa-3x text-muted mb-3"></i><h6 class="text-muted">No portfolio data available</h6><p class="text-muted small">Deposit NFTs or add vBTC to see your portfolio distribution</p></div>';
         }
     }
-});
 
-// Loan Health Chart
-const loanHealthCtx = document.getElementById('loanHealthChart').getContext('2d');
-const loanHealthChart = new Chart(loanHealthCtx, {
-    type: 'bar',
-    data: {
-        labels: [
+    // Loan Health Chart
+    const loanHealthCtx = document.getElementById('loanHealthChart');
+    if (loanHealthCtx) {
+        const loanLabels = [
             {% for loan in user_loans %}
                 'Loan #{{ loan.id }}',
             {% endfor %}
-        ],
-        datasets: [{
-            label: 'LTV Ratio (%)',
-            data: [
-                {% for loan in user_loans %}
-                    {{ loan.ltv_ratio }},
-                {% endfor %}
-            ],
-            backgroundColor: function(context) {
-                const value = context.parsed.y;
-                if (value >= 80) return '#dc3545';  // Danger
-                if (value >= 60) return '#ffc107';  // Warning
-                return '#28a745';  // Success
-            }
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Loan Health Status'
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                max: 100,
-                ticks: {
-                    callback: function(value) {
-                        return value + '%';
+        ];
+        
+        const loanData = [
+            {% for loan in user_loans %}
+                {{ loan.ltv_ratio|default:0 }},
+            {% endfor %}
+        ];
+
+        if (loanData.length > 0) {
+            new Chart(loanHealthCtx, {
+                type: 'bar',
+                data: {
+                    labels: loanLabels,
+                    datasets: [{
+                        label: 'LTV Ratio (%)',
+                        data: loanData,
+                        backgroundColor: loanData.map(value => {
+                            if (value >= 80) return '#dc3545';  // Danger
+                            if (value >= 60) return '#ffc107';  // Warning
+                            return '#28a745';  // Success
+                        }),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Loan Health Status',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
                     }
                 }
-            }
+            });
+        } else {
+            loanHealthCtx.parentElement.innerHTML = '<div class="text-center p-4"><i class="fas fa-chart-bar fa-3x text-muted mb-3"></i><h6 class="text-muted">No active loans</h6><p class="text-muted small">Create loans against your NFTs to see health status</p></div>';
+        }
+    }
+}
+
+    // Portfolio Performance Chart
+    const performanceCtx = document.getElementById('performanceChart');
+    if (performanceCtx) {
+        // Sample performance data - in real app you'd get this from backend
+        const performanceData = {
+            labels: ['7 days ago', '6 days ago', '5 days ago', '4 days ago', '3 days ago', '2 days ago', 'Yesterday', 'Today'],
+            datasets: [{
+                label: 'Portfolio Value (vBTC)',
+                data: [
+                    {% with current_total=0 %}
+                        {% for nft in user_nfts %}
+                            {% if nft.estimated_value %}
+                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }}
+                            {% endif %}
+                        {% endfor %}
+                    {% endwith %}
+                ].slice(0, 8),
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        };
+
+        // Only create if we have meaningful data
+        if (performanceData.datasets[0].data.some(val => val > 0)) {
+            new Chart(performanceCtx, {
+                type: 'line',
+                data: performanceData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Portfolio Value Over Time',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' vBTC';
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        } else {
+            performanceCtx.parentElement.innerHTML = '<div class="text-center p-4"><i class="fas fa-chart-line fa-3x text-muted mb-3"></i><h6 class="text-muted">No performance data available</h6><p class="text-muted small">Build your portfolio to track performance over time</p></div>';
         }
     }
 });
