@@ -554,3 +554,61 @@ def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully!')
     return redirect('home')
+
+
+
+@login_required
+def swap_collateral(request):
+    """Swap NFT collateral between different collections"""
+    if request.method == 'POST':
+        loan_id = request.POST.get('loan_id')
+        new_nft_id = request.POST.get('new_nft_id')
+        
+        try:
+            loan = Loan.objects.get(id=loan_id, borrower=request.user, status='ACTIVE')
+            new_nft = NFTVault.objects.get(id=new_nft_id, owner=request.user, status='DEPOSITED')
+            old_nft = loan.nft_collateral
+            
+            # Update valuations first
+            from .valuation_oracle import ValuationOracle
+            new_nft.estimated_value = ValuationOracle.calculate_dynamic_value(new_nft)
+            new_nft.save()
+            
+            # Check if new NFT can support current debt
+            max_loan = (new_nft.estimated_value * new_nft.collection.max_ltv_ratio) / 100
+            if loan.current_debt > max_loan:
+                messages.error(request, f'New NFT cannot support current debt. Max: {max_loan:.6f} vBTC')
+                return redirect('loan_list')
+            
+            with transaction.atomic():
+                # Release old collateral
+                old_nft.status = 'DEPOSITED'
+                old_nft.save()
+                
+                # Set new collateral
+                new_nft.status = 'COLLATERALIZED'
+                new_nft.save()
+                
+                # Update loan
+                loan.nft_collateral = new_nft
+                loan.ltv_ratio = (loan.current_debt / new_nft.estimated_value) * 100
+                loan.save()
+                
+                # Record transaction
+                Transaction.objects.create(
+                    user=request.user,
+                    transaction_type='LOAN_CREATE',
+                    amount=Decimal('0'),
+                    related_nft=new_nft,
+                    related_loan=loan,
+                    description=f'Swapped collateral from {old_nft.collection.name} #{old_nft.token_id} to {new_nft.collection.name} #{new_nft.token_id}'
+                )
+            
+            messages.success(request, 'Collateral swapped successfully!')
+            
+        except (Loan.DoesNotExist, NFTVault.DoesNotExist):
+            messages.error(request, 'Invalid loan or NFT selected!')
+        except Exception as e:
+            messages.error(request, f'Error swapping collateral: {str(e)}')
+    
+    return redirect('loan_list')

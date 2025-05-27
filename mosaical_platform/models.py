@@ -111,6 +111,9 @@ class Transaction(models.Model):
         ('FULL_LIQUIDATION', 'Full Liquidation'),
         ('FAUCET_CLAIM', 'Faucet Claim'),
         ('DPO_PURCHASE', 'DPO Token Purchase'),
+        ('DPO_SALE', 'DPO Token Sale'),
+        ('DPO_CREATED', 'DPO Token Created'),
+        ('SWAP_COLLATERAL', 'Collateral Swap'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)

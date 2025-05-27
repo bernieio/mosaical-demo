@@ -21,6 +21,8 @@ urlpatterns = [
     path('transaction-history/', views.transaction_history, name='transaction_history'),
     path('export-transactions/', views.export_transactions, name='export_transactions'),
     path('onboarding/', views.onboarding, name='onboarding'),
+    path('swap-collateral/', views.swap_collateral, name='swap_collateral'),
+    path('logout/', views.logout_view, name='logout'),
 
     # Hidden faucet - no UI links to this
     path('hidden-faucet-vbtc-url/', views.hidden_faucet, name='hidden_faucet'),

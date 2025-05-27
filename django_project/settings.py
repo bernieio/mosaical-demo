@@ -52,6 +52,9 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'mosaical_platform.middleware.RateLimitMiddleware',
+    'mosaical_platform.monitoring.PerformanceMiddleware',
 ]
 
 # Only use clickjacking protection in deployments because the Development Web View uses 
@@ -141,3 +144,28 @@ LOGOUT_REDIRECT_URL = '/'
 SESSION_COOKIE_AGE = 3600  # 1 hour
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
+
+# Error handlers
+HANDLER404 = 'mosaical_platform.error_handlers.handle_404'
+HANDLER500 = 'mosaical_platform.error_handlers.handle_500'
+HANDLER403 = 'mosaical_platform.error_handlers.handle_403'
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': 'django_errors.log',
+        },
+    },
+    'loggers': {
+        'mosaical_platform': {
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
