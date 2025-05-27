@@ -1,0 +1,322 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}NFT Price Prediction - {{ nft.collection.name }} #{{ nft.token_id }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.prediction-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.confidence-bar {
+    width: 100%;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: linear-gradient(to right, #28a745, #ffc107, #dc3545);
+    transition: width 0.3s ease;
+}
+
+.anomaly-badge {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    margin: 2px;
+}
+
+.anomaly-high {
+    background: #dc3545;
+    color: white;
+}
+
+.anomaly-medium {
+    background: #ffc107;
+    color: black;
+}
+
+.recommendation-badge {
+    font-size: 1.2rem;
+    padding: 10px 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">🔮 AI Price Prediction</h1>
+            
+            <!-- NFT Info -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5>{{ nft.collection.name }} #{{ nft.token_id }}</h5>
+                    <p class="text-muted">{{ nft.name }}</p>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Collection:</strong> {{ nft.collection.name }}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Status:</strong> 
+                            <span class="badge bg-{{ nft.status == 'DEPOSITED' and 'success' or nft.status == 'COLLATERALIZED' and 'warning' or 'secondary' }}">
+                                {{ nft.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Utility Score:</strong> {{ nft.utility_score }}/100
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prediction Summary -->
+            <div class="prediction-summary">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Current Price</h6>
+                        <h3>{{ prediction.current_price|floatformat:4 }} vBTC</h3>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Predicted Price</h6>
+                        <h3>{{ prediction.predicted_price|floatformat:4 }} vBTC</h3>
+                        <p class="mb-0">
+                            <span class="badge {% if prediction.change_percent > 0 %}bg-success{% else %}bg-danger{% endif %} recommendation-badge">
+                                {{ prediction.change_percent|floatformat:1 }}%
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>AI Recommendation</h6>
+                        <h4>
+                            <span class="badge 
+                                {% if prediction.recommendation == 'STRONG_BUY' %}bg-success
+                                {% elif prediction.recommendation == 'BUY' %}bg-success
+                                {% elif prediction.recommendation == 'HOLD' %}bg-secondary
+                                {% elif prediction.recommendation == 'SELL' %}bg-warning
+                                {% else %}bg-danger{% endif %}">
+                                {{ prediction.recommendation|title }}
+                            </span>
+                        </h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Prediction Details -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>📊 Prediction Analysis</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Price Chart -->
+                            <canvas id="predictionChart" height="200"></canvas>
+                            
+                            <!-- Confidence Interval -->
+                            <div class="mt-4">
+                                <h6>Confidence Interval (95%)</h6>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>{{ prediction.confidence_interval.lower|floatformat:4 }} vBTC</span>
+                                    <span>{{ prediction.confidence_interval.upper|floatformat:4 }} vBTC</span>
+                                </div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: {{ prediction.confidence_interval.confidence_level|floatformat:0 }}%"></div>
+                                </div>
+                                <small class="text-muted">95% confidence that actual price will be within this range</small>
+                            </div>
+
+                            <!-- Change Breakdown -->
+                            <div class="mt-4">
+                                <h6>Price Change Analysis</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Absolute Change:</strong>
+                                        <span class="{% if prediction.change_amount > 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {{ prediction.change_amount|floatformat:4 }} vBTC
+                                        </span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Percentage Change:</strong>
+                                        <span class="{% if prediction.change_percent > 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {{ prediction.change_percent|floatformat:2 }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anomaly Detection -->
+                    {% if prediction.anomalies %}
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5>🚨 Anomalies Detected</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for anomaly in prediction.anomalies %}
+                            <div class="alert alert-{% if anomaly.severity == 'HIGH' %}danger{% else %}warning{% endif %}">
+                                <strong>{{ anomaly.type|title }}:</strong> {{ anomaly.message }}
+                                <span class="anomaly-badge anomaly-{{ anomaly.severity|lower }}">{{ anomaly.severity }}</span>
+                                <br>
+                                <small>Change: {{ anomaly.change_percentage|floatformat:1 }}%</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Sidebar Info -->
+                <div class="col-lg-4">
+                    <!-- Model Information -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6>🤖 AI Model Info</h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Models Used:</strong></p>
+                            <ul class="list-unstyled">
+                                <li>✓ LSTM (Time Series)</li>
+                                <li>✓ Transformer (Multi-modal)</li>
+                                <li>✓ Ensemble Optimization</li>
+                            </ul>
+                            
+                            <p><strong>Factors Analyzed:</strong></p>
+                            <ul class="list-unstyled small">
+                                <li>• Price History</li>
+                                <li>• Market Trends</li>
+                                <li>• Collection Performance</li>
+                                <li>• Utility Score</li>
+                                <li>• DeFi Metrics</li>
+                                <li>• Rarity Factors</li>
+                            </ul>
+                            
+                            <p class="small text-muted">
+                                Prediction generated: {{ prediction.prediction_timestamp|date:"M j, Y H:i" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6>💡 Suggested Actions</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if prediction.recommendation == 'STRONG_BUY' or prediction.recommendation == 'BUY' %}
+                            <div class="alert alert-success">
+                                <strong>Consider:</strong>
+                                <ul class="mb-0">
+                                    <li>Hold current position</li>
+                                    <li>Monitor for buying opportunities</li>
+                                    {% if nft.status == 'DEPOSITED' %}
+                                    <li>Consider using as collateral</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            {% elif prediction.recommendation == 'SELL' or prediction.recommendation == 'STRONG_SELL' %}
+                            <div class="alert alert-warning">
+                                <strong>Consider:</strong>
+                                <ul class="mb-0">
+                                    <li>Review holding strategy</li>
+                                    <li>Consider profit-taking</li>
+                                    {% if nft.status == 'COLLATERALIZED' %}
+                                    <li>Monitor loan health closely</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <strong>Current Strategy:</strong>
+                                <ul class="mb-0">
+                                    <li>Hold current position</li>
+                                    <li>Monitor market conditions</li>
+                                    <li>No immediate action required</li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-grid gap-2 mt-3">
+                                <a href="{% url 'nft_list' %}" class="btn btn-outline-primary">Back to NFTs</a>
+                                {% if nft.status == 'DEPOSITED' %}
+                                <a href="{% url 'create_loan' %}?nft_id={{ nft.id }}" class="btn btn-success">Create Loan</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Prediction Chart
+const ctx = document.getElementById('predictionChart').getContext('2d');
+
+const chartData = {
+    labels: ['Current Price', 'Predicted Price', 'Lower Bound', 'Upper Bound'],
+    datasets: [{
+        label: 'Price (vBTC)',
+        data: [
+            {{ prediction.current_price }},
+            {{ prediction.predicted_price }},
+            {{ prediction.confidence_interval.lower }},
+            {{ prediction.confidence_interval.upper }}
+        ],
+        backgroundColor: [
+            'rgba(54, 162, 235, 0.5)',
+            'rgba(255, 99, 132, 0.5)',
+            'rgba(255, 206, 86, 0.5)',
+            'rgba(75, 192, 192, 0.5)'
+        ],
+        borderColor: [
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 99, 132, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)'
+        ],
+        borderWidth: 2
+    }]
+};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: chartData,
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: false,
+                title: {
+                    display: true,
+                    text: 'Price (vBTC)'
+                }
+            }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: 'AI Price Prediction Analysis'
+            },
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

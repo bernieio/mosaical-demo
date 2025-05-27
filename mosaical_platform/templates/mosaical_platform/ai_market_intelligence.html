@@ -1,0 +1,302 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Market Intelligence{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.metric-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.prediction-card {
+    border-left: 4px solid #28a745;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+}
+
+.prediction-card.negative {
+    border-left-color: #dc3545;
+}
+
+.risk-alert {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.recommendation {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.anomaly-high {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.anomaly-medium {
+    color: #ffc107;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">🤖 AI Market Intelligence Dashboard</h1>
+            
+            <!-- Time period selector -->
+            <div class="mb-4">
+                <label for="daySelector">Analysis Period:</label>
+                <select id="daySelector" class="form-select d-inline-block w-auto" onchange="location.href='?days='+this.value">
+                    <option value="7" {% if days == 7 %}selected{% endif %}>7 Days</option>
+                    <option value="30" {% if days == 30 %}selected{% endif %}>30 Days</option>
+                    <option value="90" {% if days == 90 %}selected{% endif %}>90 Days</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Market Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h5>Total NFTs</h5>
+                <h2>{{ report.market_overview.total_nfts }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h5>Total Value</h5>
+                <h2>{{ report.market_overview.total_value_vbtc|floatformat:2 }} vBTC</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h5>Active Loans</h5>
+                <h2>{{ report.market_overview.active_loans }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <h5>Average LTV</h5>
+                <h2>{{ report.market_overview.average_ltv|floatformat:1 }}%</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Collection Analysis -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🏆 Collection Performance Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="collectionChart" height="200"></canvas>
+                    
+                    <div class="mt-3">
+                        {% for collection in report.collection_analysis|slice:":5" %}
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <div>
+                                <strong>{{ collection.collection_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ collection.total_nfts }} NFTs</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge {% if collection.predicted_change_percent > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ collection.predicted_change_percent|floatformat:1 }}%
+                                </span>
+                                <br>
+                                <small class="text-muted">Confidence: {{ collection.prediction_confidence|floatformat:2 }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Price Predictions -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🔮 AI Price Predictions</h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% for prediction in report.price_predictions|slice:":10" %}
+                    <div class="prediction-card {% if prediction.change_percent < 0 %}negative{% endif %}">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>{{ prediction.nft_name }}</strong>
+                                <br>
+                                <small>Current: {{ prediction.current_price_vbtc|floatformat:4 }} vBTC</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="h6 {% if prediction.change_percent > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ prediction.change_percent|floatformat:1 }}%
+                                </span>
+                                <br>
+                                <small>{{ prediction.predicted_price_vbtc|floatformat:4 }} vBTC</small>
+                                {% if prediction.anomalies %}
+                                <br>
+                                {% for anomaly in prediction.anomalies %}
+                                <span class="badge anomaly-{{ anomaly.severity|lower }}">{{ anomaly.type }}</span>
+                                {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <!-- Risk Assessment -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>⚠️ Risk Assessment</h5>
+                </div>
+                <div class="card-body">
+                    {% for risk in report.risk_assessment %}
+                    <div class="risk-alert">
+                        <strong>{{ risk.type|title }}</strong> ({{ risk.severity }})
+                        <br>
+                        {{ risk.description }}
+                        <br>
+                        <small>Risk Value: {{ risk.value }}%</small>
+                    </div>
+                    {% empty %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> No significant risks detected
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>💡 AI Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    {% for rec in report.recommendations %}
+                    <div class="recommendation">
+                        <strong>{{ rec.type|title }}: {{ rec.target }}</strong>
+                        <span class="badge bg-{{ rec.confidence|lower == 'high' and 'success' or 'warning' }}">{{ rec.confidence }}</span>
+                        <br>
+                        {{ rec.reason }}
+                        {% if rec.expected_return %}
+                        <br>
+                        <small>Expected: {{ rec.expected_return }}</small>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No specific recommendations at this time
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anomaly Detection -->
+    {% if report.anomaly_detection %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🚨 Market Anomalies Detected</h5>
+                </div>
+                <div class="card-body">
+                    {% for anomaly in report.anomaly_detection %}
+                    <div class="alert alert-warning">
+                        <strong>{{ anomaly.type|title }}</strong>
+                        <br>
+                        {{ anomaly.description }}
+                        {% if anomaly.examples %}
+                        <div class="mt-2">
+                            <strong>Examples:</strong>
+                            <ul class="mb-0">
+                                {% for example in anomaly.examples %}
+                                <li>{{ example.nft_name }}: {{ example.anomaly.message }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Collection Performance Chart
+const ctx = document.getElementById('collectionChart').getContext('2d');
+const collectionData = {{ report.collection_analysis|slice:":5"|safe }};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: collectionData.map(c => c.collection_name),
+        datasets: [{
+            label: 'Predicted Change (%)',
+            data: collectionData.map(c => c.predicted_change_percent),
+            backgroundColor: collectionData.map(c => c.predicted_change_percent > 0 ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)'),
+            borderColor: collectionData.map(c => c.predicted_change_percent > 0 ? 'rgba(40, 167, 69, 1)' : 'rgba(220, 53, 69, 1)'),
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Predicted Change (%)'
+                }
+            }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: 'AI Predicted Price Changes by Collection'
+            }
+        }
+    }
+});
+
+// Auto-refresh every 5 minutes
+setTimeout(() => {
+    location.reload();
+}, 300000);
+</script>
+{% endblock %}

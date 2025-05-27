@@ -4,9 +4,10 @@ import random
 from django.utils import timezone
 from datetime import timedelta
 from .models import NFTVault, NFTCollection
+from .ai_models import nft_predictor
 
 class ValuationOracle:
-    """Dynamic NFT valuation based on market conditions"""
+    """Advanced NFT valuation with AI prediction"""
     
     @staticmethod
     def get_market_multiplier(collection):
@@ -28,25 +29,37 @@ class ValuationOracle:
     
     @staticmethod
     def calculate_dynamic_value(nft):
-        """Calculate dynamic value based on multiple factors"""
+        """Calculate dynamic value with AI prediction"""
         base_value = nft.estimated_value
         
-        # Market multiplier
+        # Get AI prediction
+        try:
+            ai_predicted_value = nft_predictor.predict_price(nft)
+            ai_weight = Decimal('0.6')  # 60% weight to AI prediction
+            traditional_weight = Decimal('0.4')  # 40% weight to traditional calculation
+        except Exception as e:
+            print(f"AI prediction failed for NFT {nft.id}: {e}")
+            ai_predicted_value = base_value
+            ai_weight = Decimal('0.0')
+            traditional_weight = Decimal('1.0')
+        
+        # Traditional calculation (as backup)
         market_multiplier = ValuationOracle.get_market_multiplier(nft.collection)
-        
-        # Utility score impact (±20% based on utility)
         utility_multiplier = Decimal('0.8') + (nft.utility_score / Decimal('250'))
-        
-        # Time-based appreciation (0.1% per day up to 10%)
         days_held = (timezone.now() - nft.deposit_date).days
         time_multiplier = Decimal('1.0') + min(days_held * Decimal('0.001'), Decimal('0.1'))
-        
-        # Loan status penalty (5% if collateralized)
         status_multiplier = Decimal('0.95') if nft.status == 'COLLATERALIZED' else Decimal('1.0')
         
-        new_value = base_value * market_multiplier * utility_multiplier * time_multiplier * status_multiplier
+        traditional_value = base_value * market_multiplier * utility_multiplier * time_multiplier * status_multiplier
         
-        return max(new_value, base_value * Decimal('0.5'))  # Never less than 50% of original
+        # Combine AI and traditional valuations
+        combined_value = (ai_weight * ai_predicted_value) + (traditional_weight * traditional_value)
+        
+        # Ensure reasonable bounds
+        min_value = base_value * Decimal('0.5')  # Never less than 50% of original
+        max_value = base_value * Decimal('3.0')  # Never more than 300% of original
+        
+        return max(min(combined_value, max_value), min_value)
     
     @staticmethod
     def update_all_valuations():

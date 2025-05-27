@@ -1,22 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
-from django.http import JsonResponse, Http404, HttpResponse
-from django.core.paginator import Paginator
-import csv
+from django.http import JsonResponse, HttpResponse
 from django.db import transaction
-from decimal import Decimal
+from django.db.models import Q, Sum
 from django.utils import timezone
-from datetime import datetime, timedelta
-import secrets
-
-from .models import (
-    UserProfile, NFTCollection, NFTVault, Loan, YieldRecord, 
-    Transaction, FaucetClaim, SystemSettings, DPOToken
-)
-from .notifications import NotificationManager
+from django.core.paginator import Paginator
+from decimal import Decimal
+import csv
+import json
+from .models import *
+from .utils import InterestCalculator, YieldCalculator
+from .ai_analytics import MarketIntelligence
+from .ai_models import nft_predictor
 
 def home(request):
     """Homepage view"""
@@ -368,20 +366,20 @@ def refinance_loan(request):
         try:
             loan = Loan.objects.get(id=loan_id, borrower=request.user, status='ACTIVE')
             nft = loan.nft_collateral
-            
+
             # Update valuations first
             from .valuation_oracle import ValuationOracle
             nft.estimated_value = ValuationOracle.calculate_dynamic_value(nft)
             nft.save()
-            
+
             # Calculate new maximum loan amount
             max_total_loan = (nft.estimated_value * nft.collection.max_ltv_ratio) / 100
             new_total_debt = loan.current_debt + additional_amount
-            
+
             if new_total_debt > max_total_loan:
                 messages.error(request, f'Total debt would exceed maximum: {max_total_loan:.6f} vBTC')
                 return redirect('loan_list')
-            
+
             with transaction.atomic():
                 # Create new loan record
                 new_loan = Loan.objects.create(
@@ -392,17 +390,17 @@ def refinance_loan(request):
                     ltv_ratio=(new_total_debt / nft.estimated_value) * 100,
                     interest_rate=new_interest_rate
                 )
-                
+
                 # Mark old loan as refinanced
                 loan.status = 'REPAID'
                 loan.save()
-                
+
                 # Add additional funds to user if any
                 if additional_amount > 0:
                     profile = UserProfile.objects.get(user=request.user)
                     profile.vbtc_balance += additional_amount
                     profile.save()
-                
+
                 # Record transaction
                 Transaction.objects.create(
                     user=request.user,
@@ -412,14 +410,14 @@ def refinance_loan(request):
                     related_loan=new_loan,
                     description=f'Refinanced loan #{loan.id} to #{new_loan.id} with {new_interest_rate}% rate'
                 )
-            
+
             messages.success(request, f'Loan refinanced successfully! New rate: {new_interest_rate}%')
-            
+
         except Loan.DoesNotExist:
             messages.error(request, 'Invalid loan selected!')
         except Exception as e:
             messages.error(request, f'Error refinancing loan: {str(e)}')
-    
+
     return redirect('loan_list')
 
 @login_required
@@ -501,25 +499,25 @@ def mark_notification_read(request):
 def transaction_history(request):
     """Advanced transaction history with filtering"""
     transactions = Transaction.objects.filter(user=request.user).order_by('-created_at')
-    
+
     # Apply filters
     transaction_type = request.GET.get('type')
     if transaction_type:
         transactions = transactions.filter(transaction_type=transaction_type)
-    
+
     date_from = request.GET.get('date_from')
     if date_from:
         transactions = transactions.filter(created_at__date__gte=date_from)
-    
+
     date_to = request.GET.get('date_to')
     if date_to:
         transactions = transactions.filter(created_at__date__lte=date_to)
-    
+
     # Pagination
     paginator = Paginator(transactions, 25)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     return render(request, 'mosaical_platform/transaction_history.html', {
         'transactions': page_obj
     })
@@ -529,10 +527,10 @@ def export_transactions(request):
     """Export user transactions to CSV"""
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="transactions.csv"'
-    
+
     writer = csv.writer(response)
     writer.writerow(['Date', 'Type', 'Amount', 'NFT', 'Description'])
-    
+
     transactions = Transaction.objects.filter(user=request.user).order_by('-created_at')
     for transaction in transactions:
         writer.writerow([
@@ -542,7 +540,7 @@ def export_transactions(request):
             f"{transaction.related_nft.collection.name} #{transaction.related_nft.token_id}" if transaction.related_nft else '',
             transaction.description
         ])
-    
+
     return response
 
 def onboarding(request):
@@ -563,37 +561,37 @@ def swap_collateral(request):
     if request.method == 'POST':
         loan_id = request.POST.get('loan_id')
         new_nft_id = request.POST.get('new_nft_id')
-        
+
         try:
             loan = Loan.objects.get(id=loan_id, borrower=request.user, status='ACTIVE')
             new_nft = NFTVault.objects.get(id=new_nft_id, owner=request.user, status='DEPOSITED')
             old_nft = loan.nft_collateral
-            
+
             # Update valuations first
             from .valuation_oracle import ValuationOracle
             new_nft.estimated_value = ValuationOracle.calculate_dynamic_value(new_nft)
             new_nft.save()
-            
+
             # Check if new NFT can support current debt
             max_loan = (new_nft.estimated_value * new_nft.collection.max_ltv_ratio) / 100
             if loan.current_debt > max_loan:
                 messages.error(request, f'New NFT cannot support current debt. Max: {max_loan:.6f} vBTC')
                 return redirect('loan_list')
-            
+
             with transaction.atomic():
                 # Release old collateral
                 old_nft.status = 'DEPOSITED'
                 old_nft.save()
-                
+
                 # Set new collateral
                 new_nft.status = 'COLLATERALIZED'
                 new_nft.save()
-                
+
                 # Update loan
                 loan.nft_collateral = new_nft
                 loan.ltv_ratio = (loan.current_debt / new_nft.estimated_value) * 100
                 loan.save()
-                
+
                 # Record transaction
                 Transaction.objects.create(
                     user=request.user,
@@ -603,12 +601,12 @@ def swap_collateral(request):
                     related_loan=loan,
                     description=f'Swapped collateral from {old_nft.collection.name} #{old_nft.token_id} to {new_nft.collection.name} #{new_nft.token_id}'
                 )
-            
+
             messages.success(request, 'Collateral swapped successfully!')
-            
+
         except (Loan.DoesNotExist, NFTVault.DoesNotExist):
             messages.error(request, 'Invalid loan or NFT selected!')
         except Exception as e:
             messages.error(request, f'Error swapping collateral: {str(e)}')
-    
+
     return redirect('loan_list')

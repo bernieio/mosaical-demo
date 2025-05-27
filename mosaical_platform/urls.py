@@ -22,6 +22,17 @@ urlpatterns = [
     path('export-transactions/', views.export_transactions, name='export_transactions'),
     path('onboarding/', views.onboarding, name='onboarding'),
     path('swap-collateral/', views.swap_collateral, name='swap_collateral'),
+
+    # AI Features
+    path('ai/market-intelligence/', views.ai_market_intelligence, name='ai_market_intelligence'),
+    path('ai/portfolio-analysis/', views.ai_portfolio_analysis, name='ai_portfolio_analysis'),
+    path('ai/risk-assessment/', views.ai_risk_assessment, name='ai_risk_assessment'),
+    path('nft/<int:nft_id>/prediction/', views.nft_price_prediction, name='nft_price_prediction'),
+    
+    # API endpoints
+    path('api/market-data/', views.api_market_data, name='api_market_data'),
+    path('api/nft/<int:nft_id>/valuation/', views.api_nft_valuation, name='api_nft_valuation'),
+
     path('logout/', views.logout_view, name='logout'),
 
     # Hidden faucet - no UI links to this
