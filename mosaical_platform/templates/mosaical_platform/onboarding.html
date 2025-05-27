@@ -1,0 +1,249 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Welcome to Mosaical{% endblock %}
+
+{% block extra_css %}
+<style>
+.tutorial-step {
+    display: none;
+}
+.tutorial-step.active {
+    display: block;
+}
+.tutorial-progress {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.tutorial-progress-bar {
+    height: 100%;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    transition: width 0.3s ease;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Welcome to Mosaical Platform!</h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="skipTutorial()">Skip Tutorial</button>
+                    </div>
+                    <div class="tutorial-progress mt-2">
+                        <div class="tutorial-progress-bar" id="progressBar" style="width: 20%"></div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Step 1: Introduction -->
+                    <div class="tutorial-step active" id="step1">
+                        <div class="text-center">
+                            <i class="fas fa-rocket fa-4x text-primary mb-3"></i>
+                            <h4>Welcome to the Future of NFT Finance!</h4>
+                            <p class="lead">Mosaical lets you unlock liquidity from your GameFi NFTs while earning yields.</p>
+                            <ul class="list-unstyled text-start">
+                                <li><i class="fas fa-check text-success me-2"></i>Deposit NFTs to earn automatic yields</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Use NFTs as collateral for instant loans</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Trade fractional NFT ownership (DPO tokens)</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Dynamic valuation and risk management</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Getting vBTC -->
+                    <div class="tutorial-step" id="step2">
+                        <div class="text-center">
+                            <i class="fas fa-faucet fa-4x text-info mb-3"></i>
+                            <h4>Get Your First vBTC</h4>
+                            <p>You'll need vBTC (virtual Bitcoin) to interact with the platform.</p>
+                            <div class="alert alert-info">
+                                <strong>Secret Faucet:</strong> Visit 
+                                <code>/hidden-faucet-vbtc-url/?key=MOSAICAL_DEVPROS_2025</code>
+                                to claim free vBTC for testing!
+                            </div>
+                            <a href="/hidden-faucet-vbtc-url/?key=MOSAICAL_DEVPROS_2025" class="btn btn-info" target="_blank">
+                                <i class="fas fa-external-link-alt me-1"></i>Claim Free vBTC
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Deposit NFT -->
+                    <div class="tutorial-step" id="step3">
+                        <div class="text-center">
+                            <i class="fas fa-upload fa-4x text-success mb-3"></i>
+                            <h4>Deposit Your First NFT</h4>
+                            <p>Start by depositing an NFT to the platform vault.</p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>What you'll need:</h6>
+                                    <ul class="text-start">
+                                        <li>Choose a supported collection</li>
+                                        <li>Enter NFT details (Token ID, Name)</li>
+                                        <li>Set estimated value in vBTC</li>
+                                        <li>Rate utility score (0-100)</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>What happens:</h6>
+                                    <ul class="text-start">
+                                        <li>NFT goes into secure vault</li>
+                                        <li>Starts earning automatic yields</li>
+                                        <li>Available for loan collateral</li>
+                                        <li>Can create DPO tokens</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Create Loan -->
+                    <div class="tutorial-step" id="step4">
+                        <div class="text-center">
+                            <i class="fas fa-coins fa-4x text-warning mb-3"></i>
+                            <h4>Create Your First Loan</h4>
+                            <p>Use your deposited NFT as collateral to borrow vBTC instantly.</p>
+                            <div class="alert alert-warning">
+                                <strong>Important:</strong> Loan amount cannot exceed the NFT's maximum LTV ratio.
+                                Interest accrues monthly and yields automatically apply to repayment.
+                            </div>
+                            <div class="row text-start">
+                                <div class="col-6">
+                                    <strong>Benefits:</strong>
+                                    <ul>
+                                        <li>Instant liquidity</li>
+                                        <li>Keep NFT ownership</li>
+                                        <li>Auto yield application</li>
+                                    </ul>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Risks:</strong>
+                                    <ul>
+                                        <li>Interest accumulation</li>
+                                        <li>Liquidation if LTV too high</li>
+                                        <li>Market volatility</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Complete -->
+                    <div class="tutorial-step" id="step5">
+                        <div class="text-center">
+                            <i class="fas fa-trophy fa-4x text-gold mb-3"></i>
+                            <h4>You're Ready to Go!</h4>
+                            <p class="lead">Congratulations! You now understand the basics of Mosaical.</p>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                                            <h6>Monitor Portfolio</h6>
+                                            <p class="small">Track your NFTs, loans, and yields in the dashboard</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-exchange-alt fa-2x text-info mb-2"></i>
+                                            <h6>Explore DPO Market</h6>
+                                            <p class="small">Buy and sell fractional NFT ownership tokens</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-bell fa-2x text-warning mb-2"></i>
+                                            <h6>Stay Informed</h6>
+                                            <p class="small">Get real-time notifications about your positions</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-rocket me-2"></i>Start Your Journey
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-outline-secondary" id="prevBtn" onclick="previousStep()" disabled>
+                            <i class="fas fa-arrow-left me-1"></i>Previous
+                        </button>
+                        <span id="stepIndicator">Step 1 of 5</span>
+                        <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">
+                            Next<i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentStep = 1;
+const totalSteps = 5;
+
+function nextStep() {
+    if (currentStep < totalSteps) {
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        currentStep++;
+        document.getElementById(`step${currentStep}`).classList.add('active');
+        updateUI();
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        currentStep--;
+        document.getElementById(`step${currentStep}`).classList.add('active');
+        updateUI();
+    }
+}
+
+function updateUI() {
+    // Update progress bar
+    const progress = (currentStep / totalSteps) * 100;
+    document.getElementById('progressBar').style.width = progress + '%';
+    
+    // Update step indicator
+    document.getElementById('stepIndicator').textContent = `Step ${currentStep} of ${totalSteps}`;
+    
+    // Update buttons
+    document.getElementById('prevBtn').disabled = currentStep === 1;
+    
+    if (currentStep === totalSteps) {
+        document.getElementById('nextBtn').style.display = 'none';
+    } else {
+        document.getElementById('nextBtn').style.display = 'inline-block';
+    }
+}
+
+function skipTutorial() {
+    if (confirm('Are you sure you want to skip the tutorial?')) {
+        window.location.href = '{% url "dashboard" %}';
+    }
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' && currentStep < totalSteps) {
+        nextStep();
+    } else if (e.key === 'ArrowLeft' && currentStep > 1) {
+        previousStep();
+    }
+});
+</script>
+{% endblock %}

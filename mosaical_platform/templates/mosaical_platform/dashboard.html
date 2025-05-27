@@ -1,7 +1,10 @@
-
 {% extends 'base.html' %}
 
 {% block title %}Dashboard - Mosaical{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -37,7 +40,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-4">
         <div class="card text-center">
             <div class="card-body">
@@ -47,7 +50,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-4">
         <div class="card text-center">
             <div class="card-body">
@@ -65,7 +68,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-4">
         <div class="card text-center">
             <div class="card-body">
@@ -181,16 +184,33 @@
         </div>
     {% endif %}
 
-    <!-- Recent Transactions -->
-    {% if recent_transactions %}
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history me-2"></i>Recent Transactions
-                    </h5>
+    <!-- Portfolio Analytics -->
+    <div class="col-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Portfolio Analytics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="portfolioChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="loanHealthChart" width="400" height="200"></canvas>
+                    </div>
                 </div>
-                <div class="card-body">
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="col-12 mt-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-history me-2"></i>Recent Transactions</h5>
+                <a href="{% url 'transaction_history' %}" class="btn btn-outline-primary btn-sm">View All</a>
+            </div>
+            <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -222,8 +242,90 @@
                         </table>
                     </div>
                 </div>
-            </div>
         </div>
-    {% endif %}
+    </div>
 </div>
+<script>
+// Portfolio Distribution Chart
+const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+const portfolioChart = new Chart(portfolioCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            {% for nft in user_nfts %}
+                '{{ nft.collection.name }}',
+            {% endfor %}
+            'vBTC Balance'
+        ],
+        datasets: [{
+            data: [
+                {% for nft in user_nfts %}
+                    {{ nft.estimated_value }},
+                {% endfor %}
+                {{ profile.vbtc_balance }}
+            ],
+            backgroundColor: [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Portfolio Distribution'
+            }
+        }
+    }
+});
+
+// Loan Health Chart
+const loanHealthCtx = document.getElementById('loanHealthChart').getContext('2d');
+const loanHealthChart = new Chart(loanHealthCtx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for loan in user_loans %}
+                'Loan #{{ loan.id }}',
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'LTV Ratio (%)',
+            data: [
+                {% for loan in user_loans %}
+                    {{ loan.ltv_ratio }},
+                {% endfor %}
+            ],
+            backgroundColor: function(context) {
+                const value = context.parsed.y;
+                if (value >= 80) return '#dc3545';  // Danger
+                if (value >= 60) return '#ffc107';  // Warning
+                return '#28a745';  // Success
+            }
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Loan Health Status'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+
 {% endblock %}

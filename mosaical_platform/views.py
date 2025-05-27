@@ -3,7 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse, Http404, HttpResponse
+from django.core.paginator import Paginator
+import csv
 from django.db import transaction
 from decimal import Decimal
 from django.utils import timezone
@@ -356,6 +358,71 @@ def update_dpo_price(request):
     return redirect('dpo_marketplace')
 
 @login_required
+def refinance_loan(request):
+    """Refinance existing loan with new terms"""
+    if request.method == 'POST':
+        loan_id = request.POST.get('loan_id')
+        new_interest_rate = Decimal(request.POST.get('new_interest_rate', '5.0'))
+        additional_amount = Decimal(request.POST.get('additional_amount', '0'))
+
+        try:
+            loan = Loan.objects.get(id=loan_id, borrower=request.user, status='ACTIVE')
+            nft = loan.nft_collateral
+            
+            # Update valuations first
+            from .valuation_oracle import ValuationOracle
+            nft.estimated_value = ValuationOracle.calculate_dynamic_value(nft)
+            nft.save()
+            
+            # Calculate new maximum loan amount
+            max_total_loan = (nft.estimated_value * nft.collection.max_ltv_ratio) / 100
+            new_total_debt = loan.current_debt + additional_amount
+            
+            if new_total_debt > max_total_loan:
+                messages.error(request, f'Total debt would exceed maximum: {max_total_loan:.6f} vBTC')
+                return redirect('loan_list')
+            
+            with transaction.atomic():
+                # Create new loan record
+                new_loan = Loan.objects.create(
+                    borrower=request.user,
+                    nft_collateral=nft,
+                    principal_amount=new_total_debt,
+                    current_debt=new_total_debt,
+                    ltv_ratio=(new_total_debt / nft.estimated_value) * 100,
+                    interest_rate=new_interest_rate
+                )
+                
+                # Mark old loan as refinanced
+                loan.status = 'REPAID'
+                loan.save()
+                
+                # Add additional funds to user if any
+                if additional_amount > 0:
+                    profile = UserProfile.objects.get(user=request.user)
+                    profile.vbtc_balance += additional_amount
+                    profile.save()
+                
+                # Record transaction
+                Transaction.objects.create(
+                    user=request.user,
+                    transaction_type='LOAN_CREATE',
+                    amount=additional_amount,
+                    related_nft=nft,
+                    related_loan=new_loan,
+                    description=f'Refinanced loan #{loan.id} to #{new_loan.id} with {new_interest_rate}% rate'
+                )
+            
+            messages.success(request, f'Loan refinanced successfully! New rate: {new_interest_rate}%')
+            
+        except Loan.DoesNotExist:
+            messages.error(request, 'Invalid loan selected!')
+        except Exception as e:
+            messages.error(request, f'Error refinancing loan: {str(e)}')
+    
+    return redirect('loan_list')
+
+@login_required
 def repay_loan(request):
     """Repay loan (partial or full)"""
     if request.method == 'POST':
@@ -429,6 +496,58 @@ def mark_notification_read(request):
         NotificationManager.mark_as_read(request.user, notification_id)
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
+
+@login_required
+def transaction_history(request):
+    """Advanced transaction history with filtering"""
+    transactions = Transaction.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Apply filters
+    transaction_type = request.GET.get('type')
+    if transaction_type:
+        transactions = transactions.filter(transaction_type=transaction_type)
+    
+    date_from = request.GET.get('date_from')
+    if date_from:
+        transactions = transactions.filter(created_at__date__gte=date_from)
+    
+    date_to = request.GET.get('date_to')
+    if date_to:
+        transactions = transactions.filter(created_at__date__lte=date_to)
+    
+    # Pagination
+    paginator = Paginator(transactions, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'mosaical_platform/transaction_history.html', {
+        'transactions': page_obj
+    })
+
+@login_required
+def export_transactions(request):
+    """Export user transactions to CSV"""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="transactions.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Type', 'Amount', 'NFT', 'Description'])
+    
+    transactions = Transaction.objects.filter(user=request.user).order_by('-created_at')
+    for transaction in transactions:
+        writer.writerow([
+            transaction.created_at.strftime('%Y-%m-%d %H:%M'),
+            transaction.get_transaction_type_display(),
+            transaction.amount or '',
+            f"{transaction.related_nft.collection.name} #{transaction.related_nft.token_id}" if transaction.related_nft else '',
+            transaction.description
+        ])
+    
+    return response
+
+def onboarding(request):
+    """User onboarding tutorial"""
+    return render(request, 'mosaical_platform/onboarding.html')
 
 def logout_view(request):
     """Custom logout view that accepts both GET and POST"""

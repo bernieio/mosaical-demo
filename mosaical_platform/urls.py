@@ -17,6 +17,10 @@ urlpatterns = [
     path('create-dpo/', views.create_dpo, name='create_dpo'),
     path('buy-dpo/', views.buy_dpo, name='buy_dpo'),
     path('update-dpo-price/', views.update_dpo_price, name='update_dpo_price'),
+    path('refinance-loan/', views.refinance_loan, name='refinance_loan'),
+    path('transaction-history/', views.transaction_history, name='transaction_history'),
+    path('export-transactions/', views.export_transactions, name='export_transactions'),
+    path('onboarding/', views.onboarding, name='onboarding'),
 
     # Hidden faucet - no UI links to this
     path('hidden-faucet-vbtc-url/', views.hidden_faucet, name='hidden_faucet'),
