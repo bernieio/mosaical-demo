@@ -122,7 +122,7 @@ class Command(BaseCommand):
                     # Create some loans for collateralized NFTs
                     if nft.status == 'COLLATERALIZED' and random.choice([True, False]):
                         max_loan = (nft.estimated_value * collection.max_ltv_ratio) / 100
-                        loan_amount = Decimal(str(random.uniform(float(max_loan * 0.3), float(max_loan * 0.8))))
+                        loan_amount = Decimal(str(random.uniform(float(max_loan * Decimal('0.3')), float(max_loan * Decimal('0.8')))))
                         
                         Loan.objects.create(
                             borrower=owner,
