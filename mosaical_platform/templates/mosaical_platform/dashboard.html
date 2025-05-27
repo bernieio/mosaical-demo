@@ -31,49 +31,50 @@
     </div>
 
     <!-- Quick Stats -->
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="fas fa-images fa-2x text-primary mb-2"></i>
-                <h4>{{ user_nfts.count }}</h4>
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card text-center h-100">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <i class="fas fa-images fa-2x text-primary mb-3"></i>
+                <h4 class="mb-2">{{ user_nfts.count }}</h4>
                 <p class="text-muted mb-0">NFTs Deposited</p>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="fas fa-coins fa-2x text-success mb-2"></i>
-                <h4>{{ user_loans.count }}</h4>
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card text-center h-100">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <i class="fas fa-coins fa-2x text-success mb-3"></i>
+                <h4 class="mb-2">{{ user_loans.count }}</h4>
                 <p class="text-muted mb-0">Active Loans</p>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
-                <h4>
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card text-center h-100">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <i class="fas fa-chart-line fa-2x text-info mb-3"></i>
+                <h4 class="mb-2">
                     {% with collateral_nfts=user_nfts|length %}
                         {% if collateral_nfts > 0 %}
                             {{ total_nft_value|floatformat:2 }}
                         {% else %}
                             0.00
                         {% endif %}
-                    {% endwith %} vBTC
+                    {% endwith %}
+                    <small class="d-block">vBTC</small>
                 </h4>
                 <p class="text-muted mb-0">Collateral Value</p>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="fas fa-percentage fa-2x text-warning mb-2"></i>
-                <h4>
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card text-center h-100">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <i class="fas fa-percentage fa-2x text-warning mb-3"></i>
+                <h4 class="mb-2">
                     {% if user_loans %}
                         {{ user_loans.0.calculate_health_factor|floatformat:1 }}%
                     {% else %}
@@ -229,34 +230,37 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3 text-center">
-                        <div class="border rounded p-3">
-                            <h4 class="text-primary">{{ total_nft_value|floatformat:2 }} vBTC</h4>
-                            <small class="text-muted">Total NFT Value</small>
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center text-center">
+                            <h4 class="text-primary mb-2">{{ total_nft_value|floatformat:2 }}</h4>
+                            <small class="text-muted">vBTC</small>
+                            <small class="text-muted mt-1">Total NFT Value</small>
                         </div>
                     </div>
-                    <div class="col-md-3 text-center">
-                        <div class="border rounded p-3">
-                            <h4 class="text-success">{{ profile.vbtc_balance|floatformat:4 }} vBTC</h4>
-                            <small class="text-muted">Available Balance</small>
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center text-center">
+                            <h4 class="text-success mb-2">{{ profile.vbtc_balance|floatformat:4 }}</h4>
+                            <small class="text-muted">vBTC</small>
+                            <small class="text-muted mt-1">Available Balance</small>
                         </div>
                     </div>
-                    <div class="col-md-3 text-center">
-                        <div class="border rounded p-3">
-                            <h4 class="text-warning">{{ total_debt|floatformat:4 }} vBTC</h4>
-                            <small class="text-muted">Total Debt</small>
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center text-center">
+                            <h4 class="text-warning mb-2">{{ total_debt|floatformat:4 }}</h4>
+                            <small class="text-muted">vBTC</small>
+                            <small class="text-muted mt-1">Total Debt</small>
                         </div>
                     </div>
-                    <div class="col-md-3 text-center">
-                        <div class="border rounded p-3">
-                            <h4 class="{% if user_loans %}{% if user_loans.0.ltv_ratio >= 80 %}text-danger{% elif user_loans.0.ltv_ratio >= 60 %}text-warning{% else %}text-success{% endif %}{% else %}text-success{% endif %}">
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center text-center">
+                            <h4 class="{% if user_loans %}{% if user_loans.0.ltv_ratio >= 80 %}text-danger{% elif user_loans.0.ltv_ratio >= 60 %}text-warning{% else %}text-success{% endif %}{% else %}text-success{% endif %} mb-2">
                                 {% if user_loans %}
                                     {{ user_loans.0.ltv_ratio|floatformat:1 }}%
                                 {% else %}
                                     0%
                                 {% endif %}
                             </h4>
-                            <small class="text-muted">Average LTV</small>
+                            <small class="text-muted mt-1">Average LTV</small>
                         </div>
                     </div>
                 </div>

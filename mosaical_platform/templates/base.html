@@ -60,6 +60,48 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
         }
+        
+        /* Custom responsive cards */
+        .card.h-100 {
+            min-height: 140px;
+        }
+        
+        .card-body.d-flex.flex-column.justify-content-center {
+            min-height: 120px;
+        }
+        
+        /* Ensure consistent spacing on mobile */
+        @media (max-width: 576px) {
+            .col-sm-6 {
+                margin-bottom: 1rem;
+            }
+            .card.h-100 {
+                min-height: 120px;
+            }
+            .card-body.d-flex.flex-column.justify-content-center {
+                min-height: 100px;
+                padding: 1rem 0.75rem;
+            }
+        }
+        
+        /* Medium screens adjustments */
+        @media (min-width: 577px) and (max-width: 991px) {
+            .card.h-100 {
+                min-height: 130px;
+            }
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            border: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        .btn-warning:hover {
+            background: linear-gradient(45deg, #d97706, #b45309);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+        }
         .vbtc-balance {
             background: linear-gradient(45deg, #3b82f6 0%, #1d4ed8 100%);
             color: white;
