@@ -51,11 +51,17 @@ def dashboard(request):
     user_loans = Loan.objects.filter(borrower=request.user, status='ACTIVE')
     recent_transactions = Transaction.objects.filter(user=request.user).order_by('-created_at')[:10]
 
+    # Calculate totals
+    total_nft_value = sum(nft.estimated_value or 0 for nft in user_nfts)
+    total_debt = sum(loan.current_debt or 0 for loan in user_loans)
+
     context = {
-        'profile': profile,
         'user_nfts': user_nfts,
         'user_loans': user_loans,
+        'profile': profile,
         'recent_transactions': recent_transactions,
+        'total_nft_value': total_nft_value,
+        'total_debt': total_debt,
     }
     return render(request, 'mosaical_platform/dashboard.html', context)
 
@@ -713,5 +719,5 @@ def train_models(request):
             messages.success(request, f'Models trained successfully! Features: {result["feature_count"]}, Samples: {result["sample_count"]}')
         except Exception as e:
             messages.error(request, f'Error training models: {str(e)}')
-    
+
     return redirect('ai_market_intelligence')

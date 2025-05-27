@@ -56,12 +56,12 @@
             <div class="card-body">
                 <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
                 <h4>
-                    {% with total_collateral=0 %}
-                        {% for nft in user_nfts %}
-                            {% if nft.status == 'COLLATERALIZED' %}
-                                {{ total_collateral|add:nft.estimated_value|floatformat:2 }}
-                            {% endif %}
-                        {% endfor %}
+                    {% with collateral_nfts=user_nfts|length %}
+                        {% if collateral_nfts > 0 %}
+                            {{ total_nft_value|floatformat:2 }}
+                        {% else %}
+                            0.00
+                        {% endif %}
                     {% endwith %} vBTC
                 </h4>
                 <p class="text-muted mb-0">Collateral Value</p>
@@ -231,15 +231,7 @@
                 <div class="row">
                     <div class="col-md-3 text-center">
                         <div class="border rounded p-3">
-                            <h4 class="text-primary">
-                                {% with total_value=0 %}
-                                    {% for nft in user_nfts %}
-                                        {% if nft.estimated_value %}
-                                            {{ total_value|add:nft.estimated_value|floatformat:2 }}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endwith %} vBTC
-                            </h4>
+                            <h4 class="text-primary">{{ total_nft_value|floatformat:2 }} vBTC</h4>
                             <small class="text-muted">Total NFT Value</small>
                         </div>
                     </div>
@@ -251,13 +243,7 @@
                     </div>
                     <div class="col-md-3 text-center">
                         <div class="border rounded p-3">
-                            <h4 class="text-warning">
-                                {% with total_debt=0 %}
-                                    {% for loan in user_loans %}
-                                        {{ total_debt|add:loan.current_debt|floatformat:4 }}
-                                    {% endfor %}
-                                {% endwith %} vBTC
-                            </h4>
+                            <h4 class="text-warning">{{ total_debt|floatformat:4 }} vBTC</h4>
                             <small class="text-muted">Total Debt</small>
                         </div>
                     </div>
