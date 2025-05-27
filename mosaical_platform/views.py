@@ -702,3 +702,16 @@ def ai_training_status(request):
     }
 
     return JsonResponse(status)
+
+@login_required
+def train_models(request):
+    """Train AI models using existing data"""
+    if request.method == 'POST':
+        try:
+            # Train the models
+            result = nft_predictor.train_models()
+            messages.success(request, f'Models trained successfully! Features: {result["feature_count"]}, Samples: {result["sample_count"]}')
+        except Exception as e:
+            messages.error(request, f'Error training models: {str(e)}')
+    
+    return redirect('ai_market_intelligence')
