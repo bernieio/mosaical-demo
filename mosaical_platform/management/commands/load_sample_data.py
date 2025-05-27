@@ -80,10 +80,12 @@ class Command(BaseCommand):
                 defaults={
                     'email': data['email'],
                     'first_name': data['username'].title(),
-                    'password': 'pbkdf2_sha256$720000$test$test'  # Default password
                 }
             )
             if created:
+                user.set_password('samplepass123')  # Set password properly
+                user.save()
+                
                 profile = UserProfile.objects.create(
                     user=user,
                     vbtc_balance=Decimal(str(random.uniform(50, 500)))
