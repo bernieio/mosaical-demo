@@ -1,0 +1,108 @@
+Đặc tả mô hình DYBF (Dynamic Yield-Backed NFT Financing)
+1. Mục tiêu cốt lõi
+Xây dựng một nền tảng cho vay NFT với các đặc tính:
+
+Cho phép người dùng thế chấp NFT để vay vBTC (mock).
+
+Lợi nhuận/yield thu về từ các NFT có thể được tự động thu thập và phân bổ cho việc trả nợ.
+
+Loan-To-Value (LTV) được điều chỉnh động tùy theo từng bộ sưu tập/tài sản và theo tình hình thị trường.
+
+Hỗ trợ thanh lý một phần hoặc toàn phần tài sản thế chấp khi khoản vay không còn đảm bảo an toàn.
+
+Có thể triển khai token DPO (represent fractionalized NFT ownership, giao dịch trên sàn nội bộ).
+
+2. Thành phần chức năng chính
+2.1. Quản lý NFT thế chấp (NFT Collateralization)
+Người dùng gửi NFT vào hệ thống (deposit), mỗi NFT sẽ được ghi nhận thuộc quyền sở hữu của người gửi trong kho vault.
+
+NFT chỉ có thể rút (withdraw) khi không còn khoản vay liên quan.
+
+2.2. Quản lý khoản vay động theo LTV (Dynamic LTV)
+Khi vay, hệ thống xác định giá trị NFT qua oracle (có thể mock trong Django Admin).
+
+Mỗi bộ sưu tập NFT có thể có mức LTV tối đa khác nhau (ví dụ: Blue-chip NFT có thể được vay tới 50-60% giá trị, còn NFT ít thanh khoản chỉ được 30-40%).
+
+LTV có thể điều chỉnh tự động theo biến động thị trường hoặc điều chỉnh thủ công bởi admin.
+
+2.3. Tự động thu lợi nhuận (Yield Automation)
+Mỗi NFT có thể sinh yield (phần thưởng staking, phần thưởng trong game...).
+
+Hệ thống định kỳ mock tự động cộng lợi nhuận yield vào tài khoản của user, ưu tiên dùng yield để trả lãi vay (nếu có).
+
+Yield mô phỏng có thể thiết lập tỷ lệ trong admin (VD: 1%/tháng so với giá trị NFT).
+
+2.4. Thanh lý một phần (Partial Liquidation)
+Nếu giá trị NFT giảm làm LTV vượt mức cảnh báo, hệ thống sẽ tự động thanh lý một phần NFT để bảo vệ khoản vay, thông qua việc "chia nhỏ" quyền sở hữu NFT thành các token DPO (fractionalized NFT ownership).
+
+Nếu LTV vượt mức nguy hiểm, toàn bộ NFT có thể bị thanh lý, user mất quyền sở hữu.
+
+Các mức thanh lý theo health factor:
+
+<90% ngưỡng: thanh lý 20%
+
+<80% ngưỡng: thanh lý 40%
+
+<70% ngưỡng: thanh lý 60%
+
+<60% ngưỡng: thanh lý 80%
+
+<50% ngưỡng: thanh lý 100%
+
+2.5. DPO Token (Fractional Ownership & Trading)
+Khi một phần NFT bị thanh lý, hệ thống sẽ phát hành DPO Token đại diện cho quyền sở hữu phần nhỏ của NFT.
+
+DPO Token có thể giao dịch trên sàn nội bộ (AMM Pool mock), cho phép các nhà đầu tư khác mua lại quyền sở hữu NFT đã bị thanh lý một phần
+.
+
+Chủ cũ có thể mua lại các DPO Token để chuộc lại NFT nếu hoàn trả đủ nợ.
+
+2.6. Oracle giá NFT & Yield (Mock)
+Hệ thống cho phép admin cập nhật giá trị NFT và yield hàng tháng bằng tay, hoặc mô phỏng cập nhật giá tự động.
+
+Khi có sự chênh lệch giá giữa các nguồn, giá cuối cùng sẽ là giá thấp nhất hoặc trung bình, đảm bảo an toàn cho hệ thống
+.
+
+2.7. Quản trị và giao diện người dùng
+Admin có thể thêm/bớt các bộ sưu tập NFT được chấp nhận, chỉnh LTV và các ngưỡng thanh lý.
+
+Giao diện người dùng hiển thị rõ:
+
+NFT đã gửi vault, giá trị hiện tại, số vBTC được vay tối đa, dư nợ, trạng thái LTV.
+
+Lịch sử nhận yield, lịch sử thanh lý, trạng thái DPO Token.
+
+Không hiển thị chức năng faucet vBTC ở bất kỳ đâu ngoài link ẩn.
+
+3. Quy trình hoạt động (User Flow)
+Nạp NFT vào vault: User gửi NFT, hệ thống xác thực và ghi nhận.
+
+Vay vBTC: User chọn NFT thế chấp, hệ thống xác định giá trị, LTV tối đa, user nhập số lượng vBTC muốn vay.
+
+Thu yield định kỳ: Hệ thống mock yield NFT, cộng vào tài khoản user hoặc tự động trả bớt nợ.
+
+Quản lý khoản vay: User trả nợ chủ động, hoặc hệ thống thanh lý một phần NFT khi vượt ngưỡng an toàn.
+
+DPO Token: Nếu NFT bị thanh lý một phần, user nhận phần còn lại, phần bị cắt chia thành DPO Token để giao dịch.
+
+Rút NFT: Sau khi trả hết nợ và không còn trạng thái thanh lý, user có thể rút lại NFT.
+
+4. Yêu cầu phi chức năng
+Bảo mật, ngăn chặn thao tác vượt quyền (không rút NFT khi còn nợ, không chỉnh giá ngoài quyền admin).
+
+Giao diện trực quan, lịch sử giao dịch rõ ràng.
+
+Hệ thống dễ dàng mock dữ liệu, reset, kiểm thử.
+
+Mọi logic đều có thể vận hành nội bộ trên Django, không phụ thuộc vào blockchain thực tế.
+
+5. Tóm tắt sơ đồ dữ liệu chính
+NFTVault: Quản lý NFT của user, trạng thái thế chấp.
+
+LoanManager: Quản lý khoản vay theo từng NFT, LTV, trạng thái nợ, lãi suất.
+
+YieldCollector: Quản lý lịch sử yield, trả yield tự động.
+
+DPOToken: Quản lý phát hành, burn, giao dịch DPO Token đại diện fractional NFT.
+
+PriceOracle: Quản lý giá trị NFT, yield hàng tháng.
