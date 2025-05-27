@@ -1,0 +1,117 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Deposit NFT - Mosaical{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-upload me-2"></i>Deposit NFT
+                </h3>
+                <p class="text-muted mb-0">Add your GameFi NFT to start earning yields and access loans</p>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="collection" class="form-label">NFT Collection</label>
+                        <select class="form-select" name="collection" id="collection" required>
+                            <option value="">Select a collection...</option>
+                            {% for collection in collections %}
+                                <option value="{{ collection.id }}" 
+                                        data-game="{{ collection.game_name }}"
+                                        data-ltv="{{ collection.max_ltv_ratio }}"
+                                        data-yield="{{ collection.base_yield_rate }}">
+                                    {{ collection.name }} ({{ collection.game_name }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="token_id" class="form-label">Token ID</label>
+                                <input type="text" class="form-control" name="token_id" id="token_id" required
+                                       placeholder="e.g., 1234">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">NFT Name</label>
+                                <input type="text" class="form-control" name="name" id="name" required
+                                       placeholder="e.g., Epic Sword">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="estimated_value" class="form-label">Estimated Value (vBTC)</label>
+                                <input type="number" step="0.00000001" class="form-control" 
+                                       name="estimated_value" id="estimated_value" required
+                                       placeholder="0.00000000">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="utility_score" class="form-label">Utility Score (0-100)</label>
+                                <input type="number" min="0" max="100" class="form-control" 
+                                       name="utility_score" id="utility_score" value="50"
+                                       placeholder="50">
+                                <small class="text-muted">Higher score = better loan terms</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection Info Display -->
+                    <div id="collection-info" class="alert alert-info" style="display: none;">
+                        <h6><i class="fas fa-info-circle me-2"></i>Collection Details</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Game:</strong> <span id="info-game">-</span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Max LTV:</strong> <span id="info-ltv">-</span>%
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Yield Rate:</strong> <span id="info-yield">-</span>%/month
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'nft_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Deposit NFT
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('collection').addEventListener('change', function() {
+    const selected = this.selectedOptions[0];
+    const infoDiv = document.getElementById('collection-info');
+    
+    if (selected.value) {
+        document.getElementById('info-game').textContent = selected.dataset.game;
+        document.getElementById('info-ltv').textContent = selected.dataset.ltv;
+        document.getElementById('info-yield').textContent = selected.dataset.yield;
+        infoDiv.style.display = 'block';
+    } else {
+        infoDiv.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

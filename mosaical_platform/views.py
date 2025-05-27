@@ -353,3 +353,62 @@ def update_dpo_price(request):
         messages.success(request, 'DPO token price updated successfully!')
 
     return redirect('dpo_marketplace')
+
+@login_required
+def repay_loan(request):
+    """Repay loan (partial or full)"""
+    if request.method == 'POST':
+        loan_id = request.POST.get('loan_id')
+        repay_amount = Decimal(request.POST.get('repay_amount', '0'))
+
+        try:
+            loan = Loan.objects.get(id=loan_id, borrower=request.user, status='ACTIVE')
+            profile = UserProfile.objects.get(user=request.user)
+
+            if repay_amount <= 0 or repay_amount > loan.current_debt:
+                messages.error(request, 'Invalid repayment amount!')
+                return redirect('loan_list')
+
+            if profile.vbtc_balance < repay_amount:
+                messages.error(request, 'Insufficient vBTC balance!')
+                return redirect('loan_list')
+
+            with transaction.atomic():
+                # Deduct from user balance
+                profile.vbtc_balance -= repay_amount
+                profile.save()
+
+                # Update loan debt
+                loan.current_debt -= repay_amount
+
+                if loan.current_debt <= Decimal('0.00000001'):  # Fully repaid
+                    loan.current_debt = Decimal('0')
+                    loan.status = 'REPAID'
+
+                    # Release NFT collateral
+                    loan.nft_collateral.status = 'DEPOSITED'
+                    loan.nft_collateral.save()
+
+                loan.save()
+
+                # Record transaction
+                Transaction.objects.create(
+                    user=request.user,
+                    transaction_type='LOAN_REPAY',
+                    amount=repay_amount,
+                    related_nft=loan.nft_collateral,
+                    related_loan=loan,
+                    description=f'Repaid {repay_amount} vBTC for loan #{loan.id}'
+                )
+
+            if loan.status == 'REPAID':
+                messages.success(request, f'Loan #{loan.id} fully repaid! NFT collateral released.')
+            else:
+                messages.success(request, f'Partial repayment of {repay_amount} vBTC completed.')
+
+        except Loan.DoesNotExist:
+            messages.error(request, 'Invalid loan selected!')
+        except Exception as e:
+            messages.error(request, f'Error processing repayment: {str(e)}')
+
+    return redirect('loan_list')

@@ -19,9 +19,6 @@ urlpatterns = [
     path('create-dpo/', views.create_dpo, name='create_dpo'),
     path('buy-dpo/', views.buy_dpo, name='buy_dpo'),
     path('update-dpo-price/', views.update_dpo_price, name='update_dpo_price'),
-    # Placeholder URLs for other features
-    path('nfts/', views.dashboard, name='nft_list'),  # Temporary
-    path('loans/', views.dashboard, name='loan_list'),  # Temporary
-    path('deposit-nft/', views.dashboard, name='deposit_nft'),  # Temporary
-    path('create-loan/', views.dashboard, name='create_loan'),  # Temporary
+    # Loan repayment
+    path('repay-loan/', views.repay_loan, name='repay_loan'),
 ]
