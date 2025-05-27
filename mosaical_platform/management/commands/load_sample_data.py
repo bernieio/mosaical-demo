@@ -72,6 +72,7 @@ class Command(BaseCommand):
             ('crypto_whale', 'samplepass123'),
         ]
 
+        users = []
         for username, password in sample_users:
             if User.objects.filter(username=username).exists():
                 # Delete existing user to recreate with correct password
@@ -83,6 +84,7 @@ class Command(BaseCommand):
                 email=f'{username}@example.com'
             )
             UserProfile.objects.create(user=user, vbtc_balance=10.0)  # Start with some vBTC
+            users.append(user)  # Add to users list
             self.stdout.write(f"Created user: {username} with password: {password}")
 
         # Create sample NFTs
