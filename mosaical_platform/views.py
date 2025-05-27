@@ -1,0 +1,233 @@
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib import messages
+from django.http import JsonResponse, Http404
+from django.db import transaction
+from decimal import Decimal
+from django.utils import timezone
+from datetime import datetime, timedelta
+import secrets
+
+from .models import (
+    UserProfile, NFTCollection, NFTVault, Loan, YieldRecord, 
+    Transaction, FaucetClaim, SystemSettings
+)
+
+def home(request):
+    """Homepage view"""
+    collections = NFTCollection.objects.filter(is_active=True)
+    context = {
+        'collections': collections,
+        'total_users': UserProfile.objects.count(),
+        'total_loans': Loan.objects.filter(status='ACTIVE').count(),
+    }
+    return render(request, 'mosaical_platform/home.html', context)
+
+def register_view(request):
+    """User registration"""
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            UserProfile.objects.create(user=user, vbtc_balance=0)
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Account created for {username}!')
+            return redirect('login')
+    else:
+        form = UserCreationForm()
+    return render(request, 'registration/register.html', {'form': form})
+
+@login_required
+def dashboard(request):
+    """User dashboard"""
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    user_nfts = NFTVault.objects.filter(owner=request.user).exclude(status='WITHDRAWN')
+    user_loans = Loan.objects.filter(borrower=request.user, status='ACTIVE')
+    recent_transactions = Transaction.objects.filter(user=request.user).order_by('-created_at')[:10]
+    
+    context = {
+        'profile': profile,
+        'user_nfts': user_nfts,
+        'user_loans': user_loans,
+        'recent_transactions': recent_transactions,
+    }
+    return render(request, 'mosaical_platform/dashboard.html', context)
+
+@login_required
+def nft_list(request):
+    """List user's NFTs"""
+    user_nfts = NFTVault.objects.filter(owner=request.user).exclude(status='WITHDRAWN')
+    return render(request, 'mosaical_platform/nft_list.html', {'user_nfts': user_nfts})
+
+@login_required
+def deposit_nft(request):
+    """Deposit NFT into vault"""
+    if request.method == 'POST':
+        collection_id = request.POST.get('collection')
+        token_id = request.POST.get('token_id')
+        name = request.POST.get('name')
+        estimated_value = Decimal(request.POST.get('estimated_value', '0'))
+        utility_score = int(request.POST.get('utility_score', '50'))
+        
+        try:
+            collection = NFTCollection.objects.get(id=collection_id)
+            
+            # Check if NFT already exists
+            if NFTVault.objects.filter(collection=collection, token_id=token_id).exists():
+                messages.error(request, 'This NFT already exists in the system!')
+                return redirect('deposit_nft')
+            
+            # Create NFT vault entry
+            nft = NFTVault.objects.create(
+                owner=request.user,
+                collection=collection,
+                token_id=token_id,
+                name=name,
+                estimated_value=estimated_value,
+                utility_score=utility_score,
+                status='DEPOSITED'
+            )
+            
+            # Record transaction
+            Transaction.objects.create(
+                user=request.user,
+                transaction_type='DEPOSIT_NFT',
+                related_nft=nft,
+                description=f'Deposited NFT {collection.name} #{token_id}'
+            )
+            
+            messages.success(request, f'NFT {name} deposited successfully!')
+            return redirect('nft_list')
+            
+        except NFTCollection.DoesNotExist:
+            messages.error(request, 'Invalid collection selected!')
+        except Exception as e:
+            messages.error(request, f'Error depositing NFT: {str(e)}')
+    
+    collections = NFTCollection.objects.filter(is_active=True)
+    return render(request, 'mosaical_platform/deposit_nft.html', {'collections': collections})
+
+@login_required
+def loan_list(request):
+    """List user's loans"""
+    user_loans = Loan.objects.filter(borrower=request.user)
+    return render(request, 'mosaical_platform/loan_list.html', {'user_loans': user_loans})
+
+@login_required
+def create_loan(request):
+    """Create a new loan against NFT collateral"""
+    if request.method == 'POST':
+        nft_id = request.POST.get('nft_id')
+        loan_amount = Decimal(request.POST.get('loan_amount', '0'))
+        
+        try:
+            nft = NFTVault.objects.get(id=nft_id, owner=request.user, status='DEPOSITED')
+            
+            # Calculate maximum loan amount based on LTV
+            max_loan = (nft.estimated_value * nft.collection.max_ltv_ratio) / 100
+            
+            if loan_amount > max_loan:
+                messages.error(request, f'Loan amount exceeds maximum allowed: {max_loan} vBTC')
+                return redirect('create_loan')
+            
+            # Create loan
+            with transaction.atomic():
+                loan = Loan.objects.create(
+                    borrower=request.user,
+                    nft_collateral=nft,
+                    principal_amount=loan_amount,
+                    current_debt=loan_amount,
+                    ltv_ratio=(loan_amount / nft.estimated_value) * 100,
+                    interest_rate=Decimal('5.00')  # Default 5% monthly
+                )
+                
+                # Update NFT status
+                nft.status = 'COLLATERALIZED'
+                nft.save()
+                
+                # Add vBTC to user balance
+                profile = UserProfile.objects.get(user=request.user)
+                profile.vbtc_balance += loan_amount
+                profile.save()
+                
+                # Record transaction
+                Transaction.objects.create(
+                    user=request.user,
+                    transaction_type='LOAN_CREATE',
+                    amount=loan_amount,
+                    related_nft=nft,
+                    related_loan=loan,
+                    description=f'Created loan of {loan_amount} vBTC against {nft.collection.name} #{nft.token_id}'
+                )
+            
+            messages.success(request, f'Loan of {loan_amount} vBTC created successfully!')
+            return redirect('loan_list')
+            
+        except NFTVault.DoesNotExist:
+            messages.error(request, 'Invalid NFT selected!')
+        except Exception as e:
+            messages.error(request, f'Error creating loan: {str(e)}')
+    
+    # Get available NFTs for collateral
+    available_nfts = NFTVault.objects.filter(owner=request.user, status='DEPOSITED')
+    return render(request, 'mosaical_platform/create_loan.html', {'available_nfts': available_nfts})
+
+def hidden_faucet(request):
+    """Hidden faucet endpoint - only accessible via secret URL"""
+    secret_key = request.GET.get('key')
+    
+    # Check if the secret key is valid (you can set this in admin)
+    try:
+        expected_key = SystemSettings.objects.get(key='FAUCET_SECRET_KEY').value
+    except SystemSettings.DoesNotExist:
+        expected_key = 'MOSAICAL_SECRET_2024'  # Default key
+    
+    if secret_key != expected_key:
+        raise Http404("Page not found")
+    
+    if not request.user.is_authenticated:
+        messages.error(request, 'You must be logged in to use the faucet.')
+        return redirect('login')
+    
+    # Check daily limit
+    today = timezone.now().date()
+    today_claims = FaucetClaim.objects.filter(
+        user=request.user,
+        claimed_at__date=today
+    ).count()
+    
+    if today_claims >= 1:  # Limit 1 claim per day
+        messages.error(request, 'You have already claimed from faucet today!')
+        return render(request, 'mosaical_platform/faucet.html', {'can_claim': False})
+    
+    if request.method == 'POST':
+        faucet_amount = Decimal('10.0')  # 10 vBTC per claim
+        
+        with transaction.atomic():
+            # Add vBTC to user balance
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.vbtc_balance += faucet_amount
+            profile.save()
+            
+            # Record faucet claim
+            FaucetClaim.objects.create(
+                user=request.user,
+                amount=faucet_amount,
+                ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1')
+            )
+            
+            # Record transaction
+            Transaction.objects.create(
+                user=request.user,
+                transaction_type='FAUCET_CLAIM',
+                amount=faucet_amount,
+                description=f'Claimed {faucet_amount} vBTC from faucet'
+            )
+        
+        messages.success(request, f'Successfully claimed {faucet_amount} vBTC!')
+        return redirect('dashboard')
+    
+    return render(request, 'mosaical_platform/faucet.html', {'can_claim': True})
