@@ -1,0 +1,184 @@
+
+{% extends 'base.html' %}
+
+{% block title %}DPO Marketplace - Mosaical{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-store me-2"></i>DPO Token Marketplace
+                </h3>
+                <p class="text-muted mb-0">Trade fractionalized NFT ownership tokens</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available DPO Tokens -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-coins me-2"></i>Available DPO Tokens
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for dpo in available_dpos %}
+                    <div class="border rounded p-3 mb-3">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h6>{{ dpo.original_nft.collection.name }} #{{ dpo.original_nft.token_id }}</h6>
+                                <p class="text-muted mb-1">
+                                    <i class="fas fa-percentage me-1"></i>{{ dpo.ownership_percentage }}% ownership
+                                </p>
+                                <p class="text-muted mb-1">
+                                    <i class="fas fa-user me-1"></i>Seller: {{ dpo.owner.username }}
+                                </p>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>{{ dpo.current_price|floatformat:4 }} vBTC</strong><br>
+                                <small class="text-muted">Current Price</small>
+                            </div>
+                            <div class="col-md-3">
+                                {% if user != dpo.owner %}
+                                    <button class="btn btn-primary btn-sm" onclick="buyDPO({{ dpo.id }})">
+                                        <i class="fas fa-shopping-cart me-1"></i>Buy
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="updatePrice({{ dpo.id }})">
+                                        <i class="fas fa-edit me-1"></i>Update Price
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-center text-muted">No DPO tokens available for trading</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Your DPO Tokens -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-wallet me-2"></i>Your DPO Tokens
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for dpo in user_dpos %}
+                    <div class="border rounded p-2 mb-2">
+                        <h6 class="mb-1">{{ dpo.original_nft.collection.name }} #{{ dpo.original_nft.token_id }}</h6>
+                        <small class="text-muted d-block">{{ dpo.ownership_percentage }}% ownership</small>
+                        <small class="text-success">{{ dpo.current_price|floatformat:4 }} vBTC</small>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-center">You don't own any DPO tokens</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Create DPO Token -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-plus-circle me-2"></i>Fractionalize NFT
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'create_dpo' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Select NFT</label>
+                        <select name="nft_id" class="form-select" required>
+                            <option value="">Choose NFT...</option>
+                            {% for nft in user_nfts %}
+                                <option value="{{ nft.id }}">{{ nft.collection.name }} #{{ nft.token_id }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ownership %</label>
+                        <input type="number" name="ownership_percentage" class="form-control" min="1" max="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price (vBTC)</label>
+                        <input type="number" name="price" class="form-control" step="0.00000001" min="0.00000001" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-magic me-2"></i>Create DPO Token
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Buy DPO Modal -->
+<div class="modal fade" id="buyDPOModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Buy DPO Token</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="buyDPOForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="dpo_id" id="dpoIdInput">
+                    <p>Are you sure you want to buy this DPO token?</p>
+                    <div id="dpoDetails"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm Purchase</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function buyDPO(dpoId) {
+    document.getElementById('dpoIdInput').value = dpoId;
+    document.getElementById('buyDPOForm').action = "{% url 'buy_dpo' %}";
+    new bootstrap.Modal(document.getElementById('buyDPOModal')).show();
+}
+
+function updatePrice(dpoId) {
+    const newPrice = prompt('Enter new price (vBTC):');
+    if (newPrice) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'update_dpo_price' %}";
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        
+        const dpoInput = document.createElement('input');
+        dpoInput.type = 'hidden';
+        dpoInput.name = 'dpo_id';
+        dpoInput.value = dpoId;
+        
+        const priceInput = document.createElement('input');
+        priceInput.type = 'hidden';
+        priceInput.name = 'new_price';
+        priceInput.value = newPrice;
+        
+        form.appendChild(csrfInput);
+        form.appendChild(dpoInput);
+        form.appendChild(priceInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

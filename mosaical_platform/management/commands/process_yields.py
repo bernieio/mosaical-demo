@@ -1,54 +1,69 @@
 
+#!/usr/bin/env python3
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from mosaical_platform.utils import YieldCalculator, InterestCalculator, LiquidationEngine
+from mosaical_platform.utils import YieldCalculator
+from mosaical_platform.models import SystemSettings
+from decimal import Decimal
 
 class Command(BaseCommand):
-    help = 'Process NFT yields and update loan interests'
-    
+    help = 'Process yields for all deposited NFTs'
+
     def add_arguments(self, parser):
         parser.add_argument(
             '--dry-run',
             action='store_true',
-            help='Run without making changes',
+            help='Show what would be processed without making changes',
         )
-    
+
     def handle(self, *args, **options):
-        dry_run = options['dry_run']
-        
-        if dry_run:
+        self.stdout.write(
+            self.style.SUCCESS(f'Starting yield processing at {timezone.now()}')
+        )
+
+        if options['dry_run']:
             self.stdout.write(
                 self.style.WARNING('DRY RUN MODE - No changes will be made')
             )
-        
-        self.stdout.write('Starting yield and interest processing...')
-        
-        # Process yields
-        if not dry_run:
-            total_yield = YieldCalculator.process_all_yields()
-            self.stdout.write(
-                self.style.SUCCESS(f'Processed yields: {total_yield:.8f} vBTC total')
-            )
-        
-        # Update loan interests
-        if not dry_run:
-            total_interest = InterestCalculator.update_all_loans()
-            self.stdout.write(
-                self.style.SUCCESS(f'Updated loan interests: {total_interest:.8f} vBTC total')
-            )
-        
-        # Check liquidations
-        liquidations = LiquidationEngine.check_all_liquidations()
-        if liquidations:
-            for liq in liquidations:
+
+        try:
+            if not options['dry_run']:
+                total_yield = YieldCalculator.process_all_yields()
+                
+                # Update last processing time
+                last_processing, created = SystemSettings.objects.get_or_create(
+                    key='last_yield_processing',
+                    defaults={
+                        'value': str(timezone.now()),
+                        'description': 'Last time yields were processed'
+                    }
+                )
+                if not created:
+                    last_processing.value = str(timezone.now())
+                    last_processing.save()
+
                 self.stdout.write(
-                    self.style.WARNING(
-                        f'Liquidated loan #{liq["loan"].id}: {liq["amount"]:.8f} vBTC ({liq["type"]})'
+                    self.style.SUCCESS(
+                        f'Successfully processed yields. Total yield distributed: {total_yield} vBTC'
                     )
                 )
-        else:
-            self.stdout.write('No liquidations required')
-        
+            else:
+                # Dry run - just show what would happen
+                from mosaical_platform.models import NFTVault
+                active_nfts = NFTVault.objects.exclude(status__in=['WITHDRAWN', 'LIQUIDATED'])
+                
+                self.stdout.write(f'Would process yields for {active_nfts.count()} NFTs:')
+                for nft in active_nfts:
+                    estimated_yield = YieldCalculator.calculate_yield(nft)
+                    self.stdout.write(f'  - {nft}: {estimated_yield} vBTC')
+
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f'Error processing yields: {str(e)}')
+            )
+            raise
+
         self.stdout.write(
-            self.style.SUCCESS(f'Processing completed at {timezone.now()}')
+            self.style.SUCCESS(f'Yield processing completed at {timezone.now()}')
         )

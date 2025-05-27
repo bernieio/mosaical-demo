@@ -1,4 +1,3 @@
-
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
@@ -13,7 +12,16 @@ urlpatterns = [
     path('nfts/deposit/', views.deposit_nft, name='deposit_nft'),
     path('loans/', views.loan_list, name='loan_list'),
     path('loans/create/', views.create_loan, name='create_loan'),
-    
+
     # Hidden faucet - no UI links to this
     path('hidden-faucet-vbtc-url/', views.hidden_faucet, name='hidden_faucet'),
+    path('dpo-marketplace/', views.dpo_marketplace, name='dpo_marketplace'),
+    path('create-dpo/', views.create_dpo, name='create_dpo'),
+    path('buy-dpo/', views.buy_dpo, name='buy_dpo'),
+    path('update-dpo-price/', views.update_dpo_price, name='update_dpo_price'),
+    # Placeholder URLs for other features
+    path('nfts/', views.dashboard, name='nft_list'),  # Temporary
+    path('loans/', views.dashboard, name='loan_list'),  # Temporary
+    path('deposit-nft/', views.dashboard, name='deposit_nft'),  # Temporary
+    path('create-loan/', views.dashboard, name='create_loan'),  # Temporary
 ]
