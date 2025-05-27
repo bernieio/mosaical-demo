@@ -1,0 +1,144 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Home - Mosaical NFT Lending Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Hero Section -->
+    <div class="col-12 mb-5">
+        <div class="card bg-transparent border-0">
+            <div class="card-body text-center text-white">
+                <h1 class="display-4 mb-4">
+                    <i class="fas fa-cube me-3"></i>Mosaical
+                </h1>
+                <p class="lead mb-4">
+                    Dynamic Yield-Backed NFT Financing Platform for GameFi Players
+                </p>
+                <p class="mb-4">
+                    Collateralize your GameFi NFTs • Earn Dynamic Yields • Access Instant Liquidity
+                </p>
+                {% if not user.is_authenticated %}
+                    <a href="{% url 'register' %}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-user-plus me-2"></i>Get Started
+                    </a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </a>
+                {% else %}
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                <h3>{{ total_users }}</h3>
+                <p class="text-muted">Active Users</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-coins fa-3x text-success mb-3"></i>
+                <h3>{{ total_loans }}</h3>
+                <p class="text-muted">Active Loans</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-images fa-3x text-info mb-3"></i>
+                <h3>{{ collections.count }}</h3>
+                <p class="text-muted">NFT Collections</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Featured Collections -->
+    {% if collections %}
+        <div class="col-12">
+            <h2 class="text-white mb-4">
+                <i class="fas fa-star me-2"></i>Featured GameFi Collections
+            </h2>
+            <div class="row">
+                {% for collection in collections %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card nft-card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ collection.name }}</h5>
+                                <p class="card-text">
+                                    <strong>Game:</strong> {{ collection.game_name }}<br>
+                                    <strong>Max LTV:</strong> {{ collection.max_ltv_ratio }}%<br>
+                                    <strong>Yield Rate:</strong> {{ collection.base_yield_rate }}% /month
+                                </p>
+                                {% if user.is_authenticated %}
+                                    <a href="{% url 'deposit_nft' %}" class="btn btn-primary">
+                                        <i class="fas fa-upload me-1"></i>Deposit NFT
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Features Section -->
+    <div class="col-12 mt-5">
+        <h2 class="text-white text-center mb-5">DYBF Features</h2>
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <i class="fas fa-lock fa-3x text-primary mb-3"></i>
+                        <h5>NFT Collateralization</h5>
+                        <p>Deposit your GameFi NFTs as collateral to access instant liquidity</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                        <h5>Dynamic Yields</h5>
+                        <p>Earn yields from your collateralized NFTs automatically</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <i class="fas fa-exchange-alt fa-3x text-info mb-3"></i>
+                        <h5>Dynamic LTV</h5>
+                        <p>Loan-to-Value ratios adjust based on market conditions</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-4">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <i class="fas fa-coins fa-3x text-warning mb-3"></i>
+                        <h5>DPO Tokens</h5>
+                        <p>Trade fractionalized NFT ownership through DPO tokens</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

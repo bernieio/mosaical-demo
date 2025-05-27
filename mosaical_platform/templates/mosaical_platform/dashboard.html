@@ -1,0 +1,229 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Mosaical{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- User Info Header -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h2 class="mb-0">
+                            <i class="fas fa-user-circle me-2"></i>Welcome, {{ user.username }}
+                        </h2>
+                        <p class="text-muted mb-0">GameFi NFT Lending Dashboard</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <div class="vbtc-balance d-inline-block">
+                            <i class="fas fa-wallet me-2"></i>
+                            <strong>{{ profile.vbtc_balance|floatformat:4 }} vBTC</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-images fa-2x text-primary mb-2"></i>
+                <h4>{{ user_nfts.count }}</h4>
+                <p class="text-muted mb-0">NFTs Deposited</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-coins fa-2x text-success mb-2"></i>
+                <h4>{{ user_loans.count }}</h4>
+                <p class="text-muted mb-0">Active Loans</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                <h4>
+                    {% with total_collateral=0 %}
+                        {% for nft in user_nfts %}
+                            {% if nft.status == 'COLLATERALIZED' %}
+                                {{ total_collateral|add:nft.estimated_value|floatformat:2 }}
+                            {% endif %}
+                        {% endfor %}
+                    {% endwith %} vBTC
+                </h4>
+                <p class="text-muted mb-0">Collateral Value</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-percentage fa-2x text-warning mb-2"></i>
+                <h4>
+                    {% if user_loans %}
+                        {{ user_loans.0.calculate_health_factor|floatformat:1 }}%
+                    {% else %}
+                        100%
+                    {% endif %}
+                </h4>
+                <p class="text-muted mb-0">Health Factor</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'deposit_nft' %}" class="btn btn-primary w-100">
+                            <i class="fas fa-upload me-2"></i>Deposit NFT
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'create_loan' %}" class="btn btn-success w-100">
+                            <i class="fas fa-coins me-2"></i>Create Loan
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'nft_list' %}" class="btn btn-info w-100">
+                            <i class="fas fa-images me-2"></i>View NFTs
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'loan_list' %}" class="btn btn-warning w-100">
+                            <i class="fas fa-list me-2"></i>View Loans
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent NFTs -->
+    {% if user_nfts %}
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-images me-2"></i>Recent NFTs
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for nft in user_nfts|slice:":5" %}
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <div>
+                                <strong>{{ nft.collection.name }} #{{ nft.token_id }}</strong><br>
+                                <small class="text-muted">{{ nft.name }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{% if nft.status == 'DEPOSITED' %}success{% elif nft.status == 'COLLATERALIZED' %}warning{% else %}secondary{% endif %}">
+                                    {{ nft.get_status_display }}
+                                </span><br>
+                                <small>{{ nft.estimated_value }} vBTC</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    {% if user_nfts.count > 5 %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'nft_list' %}" class="btn btn-sm btn-outline-primary">View All NFTs</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Active Loans -->
+    {% if user_loans %}
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-coins me-2"></i>Active Loans
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for loan in user_loans %}
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <div>
+                                <strong>Loan #{{ loan.id }}</strong><br>
+                                <small class="text-muted">{{ loan.nft_collateral.collection.name }} #{{ loan.nft_collateral.token_id }}</small>
+                            </div>
+                            <div class="text-end">
+                                <strong>{{ loan.current_debt|floatformat:4 }} vBTC</strong><br>
+                                <small>LTV: {{ loan.ltv_ratio|floatformat:1 }}%</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'loan_list' %}" class="btn btn-sm btn-outline-primary">View All Loans</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Recent Transactions -->
+    {% if recent_transactions %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Transactions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-primary">{{ transaction.get_transaction_type_display }}</span>
+                                        </td>
+                                        <td>{{ transaction.description|truncatechars:50 }}</td>
+                                        <td>
+                                            {% if transaction.amount %}
+                                                {{ transaction.amount|floatformat:4 }} vBTC
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ transaction.created_at|date:"M j, Y H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
