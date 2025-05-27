@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.http import JsonResponse, Http404
@@ -429,3 +429,9 @@ def mark_notification_read(request):
         NotificationManager.mark_as_read(request.user, notification_id)
         return JsonResponse({'success': True})
     return JsonResponse({'success': False})
+
+def logout_view(request):
+    """Custom logout view that accepts both GET and POST"""
+    logout(request)
+    messages.success(request, 'You have been logged out successfully!')
+    return redirect('home')
