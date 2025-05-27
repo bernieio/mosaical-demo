@@ -184,7 +184,7 @@ def hidden_faucet(request):
     try:
         expected_key = SystemSettings.objects.get(key='FAUCET_SECRET_KEY').value
     except SystemSettings.DoesNotExist:
-        expected_key = 'MOSAICAL_SECRET_2024'  # Default key
+        expected_key = 'MOSAICAL_DEVPROS_2025'  # Default key
 
     if secret_key != expected_key:
         raise Http404("Page not found")
