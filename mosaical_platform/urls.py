@@ -28,7 +28,7 @@ urlpatterns = [
     path('ai/portfolio-analysis/', views.ai_portfolio_analysis, name='ai_portfolio_analysis'),
     path('ai/risk-assessment/', views.ai_risk_assessment, name='ai_risk_assessment'),
     path('nft/<int:nft_id>/prediction/', views.nft_price_prediction, name='nft_price_prediction'),
-    
+
     # API endpoints
     path('api/market-data/', views.api_market_data, name='api_market_data'),
     path('api/nft/<int:nft_id>/valuation/', views.api_nft_valuation, name='api_nft_valuation'),
@@ -41,4 +41,9 @@ urlpatterns = [
     # Notification endpoints
     path('api/notifications/', views.get_notifications, name='get_notifications'),
     path('api/notifications/mark-read/', views.mark_notification_read, name='mark_notification_read'),
+    # AI & Analytics
+    path('ai-market-intelligence/', views.ai_market_intelligence, name='ai_market_intelligence'),
+    path('nft/<int:nft_id>/prediction/', views.nft_prediction_detail, name='nft_prediction'),
+    path('api/ai/predict/<int:nft_id>/', views.test_ai_prediction, name='test_ai_prediction'),
+    path('api/ai/status/', views.ai_training_status, name='ai_training_status'),
 ]

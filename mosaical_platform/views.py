@@ -15,6 +15,9 @@ from .models import *
 from .utils import InterestCalculator, YieldCalculator
 from .ai_analytics import MarketIntelligence
 from .ai_models import nft_predictor
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+
 
 def home(request):
     """Homepage view"""
@@ -610,3 +613,92 @@ def swap_collateral(request):
             messages.error(request, f'Error swapping collateral: {str(e)}')
 
     return redirect('loan_list')
+
+def ai_market_intelligence(request):
+    """AI Market Intelligence Dashboard"""
+    try:
+        # Generate market report
+        report = MarketIntelligence.generate_market_report(days=30)
+
+        context = {
+            'report': report,
+            'user_portfolio': None
+        }
+
+        # Add user portfolio analysis if authenticated
+        if request.user.is_authenticated:
+            context['user_portfolio'] = MarketIntelligence.get_user_portfolio_analysis(request.user)
+
+        return render(request, 'mosaical_platform/ai_market_intelligence.html', context)
+
+    except Exception as e:
+        messages.error(request, f'Error generating market intelligence: {e}')
+        return redirect('dashboard')
+
+@csrf_exempt
+def test_ai_prediction(request, nft_id):
+    """Test AI prediction for specific NFT"""
+    if request.method == 'POST':
+        try:
+            nft = get_object_or_404(NFTVault, id=nft_id)
+
+            # Get AI prediction
+            predicted_price = nft_predictor.predict_price(nft)
+            current_price = nft.estimated_value
+            change_percent = float((predicted_price - current_price) / current_price * 100)
+
+            # Get confidence interval
+            confidence_interval = nft_predictor.calculate_confidence_interval(nft, predicted_price)
+
+            # Detect anomalies
+            anomalies = nft_predictor.detect_anomalies(nft, predicted_price)
+
+            # Get model status
+            model_status = {
+                'is_trained': nft_predictor.is_trained,
+                'random_forest': True,
+                'gradient_boosting': True,
+                'xgboost': nft_predictor.xgboost is not None
+            }
+
+            return JsonResponse({
+                'success': True,
+                'nft_info': {
+                    'id': nft.id,
+                    'name': f"{nft.collection.name} #{nft.token_id}",
+                    'collection': nft.collection.name
+                },
+                'current_price': float(current_price),
+                'predicted_price': float(predicted_price),
+                'change_percent': round(change_percent, 2),
+                'confidence_interval': {
+                    'lower': float(confidence_interval['lower_bound']),
+                    'upper': float(confidence_interval['upper_bound']),
+                    'level': confidence_interval['confidence_level']
+                },
+                'anomalies': anomalies,
+                'model_status': model_status,
+                'prediction_method': 'ensemble' if nft_predictor.is_trained else 'heuristic'
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+
+    return JsonResponse({'success': False, 'error': 'POST method required'})
+
+def ai_training_status(request):
+    """Get AI model training status"""
+    status = {
+        'is_trained': nft_predictor.is_trained,
+        'models': {
+            'random_forest': hasattr(nft_predictor, 'random_forest'),
+            'gradient_boosting': hasattr(nft_predictor, 'gradient_boosting'),
+            'xgboost': nft_predictor.xgboost is not None
+        },
+        'ensemble_weights': nft_predictor.ensemble_weights
+    }
+
+    return JsonResponse(status)

@@ -1,81 +1,58 @@
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from mosaical_platform.ai_models import NFTPricePredictor
+from mosaical_platform.ai_models import nft_predictor
 from mosaical_platform.models import NFTVault
 import numpy as np
 
 class Command(BaseCommand):
-    help = 'Train AI models with historical NFT data'
+    help = 'Train ensemble AI models (Random Forest, Gradient Boosting, XGBoost)'
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--epochs',
+            '--samples',
             type=int,
-            default=100,
-            help='Number of training epochs',
-        )
-        parser.add_argument(
-            '--simulate-data',
-            action='store_true',
-            help='Generate simulated training data',
+            default=200,
+            help='Number of training samples to generate',
         )
 
     def handle(self, *args, **options):
-        epochs = options['epochs']
-        simulate_data = options['simulate_data']
+        samples = options['samples']
         
-        self.stdout.write('🤖 Starting AI Model Training...')
+        self.stdout.write('🤖 Starting Ensemble Model Training...')
+        self.stdout.write('📊 Models: Random Forest + Gradient Boosting + XGBoost')
         
-        predictor = NFTPricePredictor()
+        # Train the models
+        success = nft_predictor.train_models()
         
-        if simulate_data:
-            self.stdout.write('📊 Generating simulated training data...')
+        if success:
+            # Test predictions on a few NFTs
+            test_nfts = NFTVault.objects.exclude(status='WITHDRAWN')[:5]
             
-            # Generate training data for available NFTs
-            nfts = NFTVault.objects.exclude(status='WITHDRAWN')[:50]  # Sample 50 NFTs
+            if test_nfts.exists():
+                self.stdout.write('\n🔮 Testing predictions:')
+                for nft in test_nfts:
+                    try:
+                        predicted_price = nft_predictor.predict_price(nft)
+                        current_price = nft.estimated_value
+                        change = float((predicted_price - current_price) / current_price * 100)
+                        
+                        self.stdout.write(
+                            f'   NFT #{nft.id}: {current_price:.4f} → {predicted_price:.4f} vBTC ({change:+.1f}%)'
+                        )
+                    except Exception as e:
+                        self.stdout.write(f'   ⚠️ Error predicting NFT #{nft.id}: {e}')
             
-            training_data = []
-            labels = []
-            
-            for nft in nfts:
-                try:
-                    # Extract features
-                    time_features = predictor.extract_time_features(nft)
-                    meta_features = predictor.extract_metadata_features(nft)
-                    
-                    # Combine features
-                    combined_features = np.concatenate([time_features, meta_features])
-                    training_data.append(combined_features)
-                    
-                    # Use current price as label (in real scenario, would use future price)
-                    labels.append(float(nft.estimated_value))
-                    
-                except Exception as e:
-                    self.stdout.write(f'⚠️ Error processing NFT {nft.id}: {e}')
-                    continue
-            
-            if training_data:
-                self.stdout.write(f'✅ Generated {len(training_data)} training samples')
-                
-                # Simulate training process
-                self.stdout.write(f'🔄 Training models for {epochs} epochs...')
-                
-                for epoch in range(epochs):
-                    if epoch % 20 == 0:
-                        self.stdout.write(f'Epoch {epoch}/{epochs}')
-                
-                self.stdout.write('✅ Model training completed!')
-                self.stdout.write('📈 Training metrics:')
-                self.stdout.write(f'   - LSTM MAPE: {np.random.uniform(8, 15):.2f}%')
-                self.stdout.write(f'   - Transformer MAPE: {np.random.uniform(6, 12):.2f}%')
-                self.stdout.write(f'   - Ensemble MAPE: {np.random.uniform(5, 10):.2f}%')
-                
-                # Mark predictor as trained
-                predictor.is_trained = True
-                
-                self.stdout.write(self.style.SUCCESS('🎉 AI models ready for predictions!'))
+            self.stdout.write(self.style.SUCCESS('\n🎉 Ensemble models trained successfully!'))
+            self.stdout.write('📈 Available models:')
+            self.stdout.write('   ✅ Random Forest Regressor')
+            self.stdout.write('   ✅ Gradient Boosting Regressor')
+            if nft_predictor.xgboost is not None:
+                self.stdout.write('   ✅ XGBoost Regressor')
             else:
-                self.stdout.write(self.style.ERROR('❌ No training data available'))
+                self.stdout.write('   ⚠️ XGBoost not available')
+            
+            self.stdout.write('\n🌐 Models are now integrated and ready for web predictions!')
+            
         else:
-            self.stdout.write(self.style.WARNING('⚠️ Use --simulate-data to generate training data'))
+            self.stdout.write(self.style.ERROR('❌ Model training failed!'))
