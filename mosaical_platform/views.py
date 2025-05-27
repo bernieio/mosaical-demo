@@ -14,6 +14,7 @@ from .models import (
     UserProfile, NFTCollection, NFTVault, Loan, YieldRecord, 
     Transaction, FaucetClaim, SystemSettings, DPOToken
 )
+from .notifications import NotificationManager
 
 def home(request):
     """Homepage view"""
@@ -412,3 +413,19 @@ def repay_loan(request):
             messages.error(request, f'Error processing repayment: {str(e)}')
 
     return redirect('loan_list')
+
+
+@login_required
+def get_notifications(request):
+    """Get user notifications via AJAX"""
+    notifications = NotificationManager.get_user_notifications(request.user)
+    return JsonResponse({'notifications': notifications})
+
+@login_required
+def mark_notification_read(request):
+    """Mark notification as read"""
+    if request.method == 'POST':
+        notification_id = request.POST.get('notification_id')
+        NotificationManager.mark_as_read(request.user, notification_id)
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})

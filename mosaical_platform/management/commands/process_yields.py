@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 from django.core.management.base import BaseCommand
@@ -30,7 +29,7 @@ class Command(BaseCommand):
         try:
             if not options['dry_run']:
                 total_yield = YieldCalculator.process_all_yields()
-                
+
                 # Update last processing time
                 last_processing, created = SystemSettings.objects.get_or_create(
                     key='last_yield_processing',
@@ -43,6 +42,19 @@ class Command(BaseCommand):
                     last_processing.value = str(timezone.now())
                     last_processing.save()
 
+                # Run auto liquidation check after yield processing
+                self.stdout.write('Running auto liquidation check...')
+                from mosaical_platform.utils import LiquidationEngine
+                liquidations = LiquidationEngine.check_all_liquidations()
+
+                if liquidations:
+                    for liq in liquidations:
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f'Auto-liquidated loan #{liq["loan"].id}: {liq["amount"]:.8f} vBTC'
+                            )
+                        )
+
                 self.stdout.write(
                     self.style.SUCCESS(
                         f'Successfully processed yields. Total yield distributed: {total_yield} vBTC'
@@ -52,7 +64,7 @@ class Command(BaseCommand):
                 # Dry run - just show what would happen
                 from mosaical_platform.models import NFTVault
                 active_nfts = NFTVault.objects.exclude(status__in=['WITHDRAWN', 'LIQUIDATED'])
-                
+
                 self.stdout.write(f'Would process yields for {active_nfts.count()} NFTs:')
                 for nft in active_nfts:
                     estimated_yield = YieldCalculator.calculate_yield(nft)
