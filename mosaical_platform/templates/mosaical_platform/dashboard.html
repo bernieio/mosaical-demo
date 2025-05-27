@@ -231,28 +231,28 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center text-center">
+                        <div class="portfolio-metric-box">
                             <h4 class="text-primary mb-2">{{ total_nft_value|floatformat:2 }}</h4>
-                            <small class="text-muted">vBTC</small>
-                            <small class="text-muted mt-1">Total NFT Value</small>
+                            <small class="text-muted d-block">vBTC</small>
+                            <small class="text-muted">Total NFT Value</small>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center text-center">
+                        <div class="portfolio-metric-box">
                             <h4 class="text-success mb-2">{{ profile.vbtc_balance|floatformat:4 }}</h4>
-                            <small class="text-muted">vBTC</small>
-                            <small class="text-muted mt-1">Available Balance</small>
+                            <small class="text-muted d-block">vBTC</small>
+                            <small class="text-muted">Available Balance</small>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center text-center">
+                        <div class="portfolio-metric-box">
                             <h4 class="text-warning mb-2">{{ total_debt|floatformat:4 }}</h4>
-                            <small class="text-muted">vBTC</small>
-                            <small class="text-muted mt-1">Total Debt</small>
+                            <small class="text-muted d-block">vBTC</small>
+                            <small class="text-muted">Total Debt</small>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                        <div class="border rounded p-3 h-100 d-flex flex-column justify-content-center text-center">
+                        <div class="portfolio-metric-box">
                             <h4 class="{% if user_loans %}{% if user_loans.0.ltv_ratio >= 80 %}text-danger{% elif user_loans.0.ltv_ratio >= 60 %}text-warning{% else %}text-success{% endif %}{% else %}text-success{% endif %} mb-2">
                                 {% if user_loans %}
                                     {{ user_loans.0.ltv_ratio|floatformat:1 }}%
@@ -260,7 +260,7 @@
                                     0%
                                 {% endif %}
                             </h4>
-                            <small class="text-muted mt-1">Average LTV</small>
+                            <small class="text-muted">Average LTV</small>
                         </div>
                     </div>
                 </div>
