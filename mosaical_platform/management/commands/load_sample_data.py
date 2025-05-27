@@ -1,4 +1,3 @@
-
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from mosaical_platform.models import (
@@ -14,13 +13,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write('Loading sample data...')
-        
+
         # Create system settings
         SystemSettings.objects.get_or_create(
             key='FAUCET_SECRET_KEY',
             defaults={'value': 'MOSAICAL_DEVPROS_2025', 'description': 'Secret key for faucet access'}
         )
-        
+
         # Create sample NFT collections
         collections_data = [
             {
@@ -54,7 +53,7 @@ class Command(BaseCommand):
                 'base_yield_rate': Decimal('4.00')
             }
         ]
-        
+
         collections = []
         for data in collections_data:
             collection, created = NFTCollection.objects.get_or_create(
@@ -64,35 +63,28 @@ class Command(BaseCommand):
             collections.append(collection)
             if created:
                 self.stdout.write(f'Created collection: {collection.name}')
-        
-        # Create sample users
-        users_data = [
-            {'username': 'gamefi_player1', 'email': 'player1@mosaical.test'},
-            {'username': 'nft_collector', 'email': 'collector@mosaical.test'},
-            {'username': 'defi_trader', 'email': 'trader@mosaical.test'},
-            {'username': 'crypto_whale', 'email': 'whale@mosaical.test'},
+
+        # Create sample users with explicit password setting
+        sample_users = [
+            ('gamefi_player1', 'samplepass123'),
+            ('nft_collector', 'samplepass123'),
+            ('defi_trader', 'samplepass123'),
+            ('crypto_whale', 'samplepass123'),
         ]
-        
-        users = []
-        for data in users_data:
-            user, created = User.objects.get_or_create(
-                username=data['username'],
-                defaults={
-                    'email': data['email'],
-                    'first_name': data['username'].title(),
-                }
+
+        for username, password in sample_users:
+            if User.objects.filter(username=username).exists():
+                # Delete existing user to recreate with correct password
+                User.objects.filter(username=username).delete()
+
+            user = User.objects.create_user(
+                username=username, 
+                password=password,
+                email=f'{username}@example.com'
             )
-            if created:
-                user.set_password('samplepass123')  # Set password properly
-                user.save()
-                
-                profile = UserProfile.objects.create(
-                    user=user,
-                    vbtc_balance=Decimal(str(random.uniform(50, 500)))
-                )
-                users.append(user)
-                self.stdout.write(f'Created user: {user.username}')
-        
+            UserProfile.objects.create(user=user, vbtc_balance=10.0)  # Start with some vBTC
+            self.stdout.write(f"Created user: {username} with password: {password}")
+
         # Create sample NFTs
         nft_names = [
             'Genesis Dragon', 'Mystic Phoenix', 'Shadow Wolf', 'Crystal Unicorn',
@@ -100,12 +92,12 @@ class Command(BaseCommand):
             'Wind Spirit', 'Water Nymph', 'Legendary Sword', 'Magic Shield',
             'Golden Armor', 'Silver Bow', 'Diamond Ring', 'Ruby Amulet'
         ]
-        
+
         for i in range(20):
             if users:
                 owner = random.choice(users)
                 collection = random.choice(collections)
-                
+
                 nft, created = NFTVault.objects.get_or_create(
                     collection=collection,
                     token_id=str(1000 + i),
@@ -117,15 +109,15 @@ class Command(BaseCommand):
                         'status': random.choice(['DEPOSITED', 'COLLATERALIZED'])
                     }
                 )
-                
+
                 if created:
                     self.stdout.write(f'Created NFT: {nft.name} #{nft.token_id}')
-                    
+
                     # Create some loans for collateralized NFTs
                     if nft.status == 'COLLATERALIZED' and random.choice([True, False]):
                         max_loan = (nft.estimated_value * collection.max_ltv_ratio) / 100
                         loan_amount = Decimal(str(random.uniform(float(max_loan * Decimal('0.3')), float(max_loan * Decimal('0.8')))))
-                        
+
                         Loan.objects.create(
                             borrower=owner,
                             nft_collateral=nft,
@@ -135,7 +127,7 @@ class Command(BaseCommand):
                             interest_rate=Decimal('5.00')
                         )
                         self.stdout.write(f'Created loan for NFT #{nft.token_id}')
-        
+
         # Create some DPO tokens
         deposited_nfts = NFTVault.objects.filter(status='DEPOSITED')[:5]
         for nft in deposited_nfts:
@@ -149,7 +141,7 @@ class Command(BaseCommand):
                     is_for_sale=True
                 )
                 self.stdout.write(f'Created DPO token for NFT #{nft.token_id}')
-        
+
         self.stdout.write(self.style.SUCCESS('Sample data loaded successfully!'))
         self.stdout.write(f'Collections: {NFTCollection.objects.count()}')
         self.stdout.write(f'Users: {User.objects.count()}')
