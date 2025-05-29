@@ -162,5 +162,3 @@ cython_debug/
 # Nix
 /result
 /result-*
-
-attached_assets/
