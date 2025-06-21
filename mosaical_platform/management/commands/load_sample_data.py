@@ -83,7 +83,7 @@ class Command(BaseCommand):
                 password=password,
                 email=f'{username}@example.com'
             )
-            UserProfile.objects.create(user=user, vbtc_balance=10.0)  # Start with some vBTC
+            UserProfile.objects.create(user=user, dpsv_balance=10.0)  # Start with some DPSV
             users.append(user)  # Add to users list
             self.stdout.write(f"Created user: {username} with password: {password}")
 
