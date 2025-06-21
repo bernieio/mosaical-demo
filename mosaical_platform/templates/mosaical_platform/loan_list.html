@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 
 {% block title %}My Loans - Mosaical{% endblock %}
@@ -39,12 +38,12 @@
                             <div class="row text-center mb-3">
                                 <div class="col-6">
                                     <small class="text-muted">Principal</small>
-                                    <div class="fw-bold">{{ loan.principal_amount }} vBTC</div>
+                                    <div class="fw-bold">{{ loan.principal_amount }} DPSV</div>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">Current Debt</small>
                                     <div class="fw-bold text-{% if loan.current_debt > loan.principal_amount %}danger{% else %}success{% endif %}">
-                                        {{ loan.current_debt }} vBTC
+                                        {{ loan.current_debt }} DPSV
                                     </div>
                                 </div>
                             </div>
@@ -102,7 +101,7 @@
                                     <input type="hidden" name="loan_id" value="{{ loan.id }}">
                                     <div class="modal-body">
                                         <div class="mb-3">
-                                            <label class="form-label">Current Debt: {{ loan.current_debt }} vBTC</label>
+                                            <label class="form-label">Current Debt: {{ loan.current_debt }} DPSV</label>
                                             <input type="number" step="0.00000001" class="form-control" 
                                                    name="repay_amount" max="{{ loan.current_debt }}" 
                                                    placeholder="Amount to repay" required>

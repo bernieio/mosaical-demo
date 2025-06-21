@@ -22,7 +22,7 @@
                     <div class="col-md-6 text-md-end">
                         <div class="vbtc-balance d-inline-block">
                             <i class="fas fa-wallet me-2"></i>
-                            <strong>{{ profile.vbtc_balance|floatformat:4 }} vBTC</strong>
+                            <strong>{{ profile.vbtc_balance|floatformat:4 }} DPSV</strong>
                         </div>
                     </div>
                 </div>
@@ -141,7 +141,7 @@
                                 <span class="badge bg-{% if nft.status == 'DEPOSITED' %}success{% elif nft.status == 'COLLATERALIZED' %}warning{% else %}secondary{% endif %}">
                                     {{ nft.get_status_display }}
                                 </span><br>
-                                <small>{{ nft.estimated_value }} vBTC</small>
+                                <small>{{ nft.estimated_value }} DPSV</small>
                             </div>
                         </div>
                     {% endfor %}
@@ -172,7 +172,7 @@
                                 <small class="text-muted">{{ loan.nft_collateral.collection.name }} #{{ loan.nft_collateral.token_id }}</small>
                             </div>
                             <div class="text-end">
-                                <strong>{{ loan.current_debt|floatformat:4 }} vBTC</strong><br>
+                                <strong>{{ loan.current_debt|floatformat:4 }} DPSV</strong><br>
                                 <small>LTV: {{ loan.ltv_ratio|floatformat:1 }}%</small>
                             </div>
                         </div>
@@ -250,14 +250,14 @@
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="portfolio-metric-box">
                             <h4 class="text-success mb-2">{{ profile.vbtc_balance|floatformat:4 }}</h4>
-                            <small class="text-muted d-block">vBTC</small>
+                            <small class="text-muted d-block">DPSV</small>
                             <small class="text-muted">Available Balance</small>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="portfolio-metric-box">
                             <h4 class="text-warning mb-2">{{ total_debt|floatformat:4 }}</h4>
-                            <small class="text-muted d-block">vBTC</small>
+                            <small class="text-muted d-block">DPSV</small>
                             <small class="text-muted">Total Debt</small>
                         </div>
                     </div>
@@ -305,7 +305,7 @@
                                         <td>{{ transaction.description|truncatechars:50 }}</td>
                                         <td>
                                             {% if transaction.amount %}
-                                                {{ transaction.amount|floatformat:4 }} vBTC
+                                                {{ transaction.amount|floatformat:4 }} DPSV
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
             {% for nft in user_nfts %}
                 '{{ nft.collection.name }} #{{ nft.token_id }}',
             {% endfor %}
-            {% if profile.vbtc_balance > 0 %}'vBTC Balance'{% endif %}
+            {% if profile.vbtc_balance > 0 %}'DPSV Balance'{% endif %}
         ];
 
         const portfolioData = [
@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } else {
             portfolioCtx.getContext('2d');
-            portfolioCtx.parentElement.innerHTML = '<div class="text-center p-4"><i class="fas fa-chart-pie fa-3x text-muted mb-3"></i><h6 class="text-muted">No portfolio data available</h6><p class="text-muted small">Deposit NFTs or add vBTC to see your portfolio distribution</p></div>';
+            portfolioCtx.parentElement.innerHTML = '<div class="text-center p-4"><i class="fas fa-chart-pie fa-3x text-muted mb-3"></i><h6 class="text-muted">No portfolio data available</h6><p class="text-muted small">Deposit NFTs or add DPSV to see your portfolio distribution</p></div>';
         }
     }
 
@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return value + ' vBTC';
+                                    return value + ' DPSV';
                                 }
                             },
                             grid: {

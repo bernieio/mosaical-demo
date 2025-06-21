@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 
 {% block title %}Faucet - Mosaical{% endblock %}
@@ -9,7 +8,7 @@
         <div class="card">
             <div class="card-header text-center">
                 <h3>
-                    <i class="fas fa-faucet me-2"></i>vBTC Faucet
+                    <i class="fas fa-faucet me-2"></i>DPSV Faucet
                 </h3>
                 <p class="text-muted mb-0">Free test tokens for development</p>
             </div>
@@ -17,37 +16,37 @@
                 {% if can_claim %}
                     <div class="mb-4">
                         <i class="fas fa-coins fa-4x text-warning mb-3"></i>
-                        <h4>Claim 10 vBTC</h4>
+                        <h4>Claim 10 DPSV</h4>
                         <p class="text-muted">You can claim once per day</p>
                     </div>
-                    
+
                     <form method="post">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-warning btn-lg">
-                            <i class="fas fa-hand-holding-usd me-2"></i>Claim vBTC
+                            <i class="fas fa-hand-holding-usd me-2"></i>Claim DPSV
                         </button>
                     </form>
                 {% else %}
                     <div class="mb-4">
                         <i class="fas fa-clock fa-4x text-secondary mb-3"></i>
                         <h4>Already Claimed Today</h4>
-                        <p class="text-muted">Come back tomorrow for more free vBTC!</p>
+                        <p class="text-muted">Come back tomorrow for more free DPSV!</p>
                     </div>
-                    
+
                     <a href="{% url 'dashboard' %}" class="btn btn-primary">
                         <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
                     </a>
                 {% endif %}
             </div>
         </div>
-        
+
         <div class="card mt-4">
             <div class="card-body">
                 <h5>
-                    <i class="fas fa-info-circle me-2"></i>About vBTC
+                    <i class="fas fa-info-circle me-2"></i>About DPSV
                 </h5>
                 <ul class="list-unstyled">
-                    <li><i class="fas fa-check text-success me-2"></i>1 vBTC = 10 Satoshi</li>
+                    <li><i class="fas fa-check text-success me-2"></i>1 DPSV = 10 Satoshi</li>
                     <li><i class="fas fa-check text-success me-2"></i>1 BTC = 100,000,000 Satoshi</li>
                     <li><i class="fas fa-check text-success me-2"></i>Mock token for testing only</li>
                     <li><i class="fas fa-check text-success me-2"></i>No real blockchain connection</li>

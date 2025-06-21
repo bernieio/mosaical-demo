@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 
 {% block title %}Create Loan - Mosaical{% endblock %}
@@ -11,13 +10,13 @@
                 <h3>
                     <i class="fas fa-coins me-2"></i>Create Loan
                 </h3>
-                <p class="text-muted mb-0">Use your NFT as collateral to borrow vBTC</p>
+                <p class="text-muted mb-0">Use your NFT as collateral to borrow DPSV</p>
             </div>
             <div class="card-body">
                 {% if available_nfts %}
                     <form method="post">
                         {% csrf_token %}
-                        
+
                         <div class="mb-4">
                             <label for="nft_id" class="form-label">Select NFT Collateral</label>
                             <select class="form-select" name="nft_id" id="nft_id" required onchange="updateLoanInfo()">
@@ -29,7 +28,7 @@
                                             data-name="{{ nft.collection.name }} #{{ nft.token_id }}"
                                             data-utility="{{ nft.utility_score }}"
                                             {% if request.GET.nft_id == nft.id|stringformat:"s" %}selected{% endif %}>
-                                        {{ nft.collection.name }} #{{ nft.token_id }} - {{ nft.name }} ({{ nft.estimated_value }} vBTC)
+                                        {{ nft.collection.name }} #{{ nft.token_id }} - {{ nft.name }} ({{ nft.estimated_value }} DPSV)
                                     </option>
                                 {% endfor %}
                             </select>
@@ -40,19 +39,19 @@
                             <h6><i class="fas fa-info-circle me-2"></i>Collateral Details</h6>
                             <div class="row">
                                 <div class="col-md-4">
-                                    <strong>NFT Value:</strong> <span id="info-value">-</span> vBTC
+                                    <strong>NFT Value:</strong> <span id="info-value">-</span> DPSV
                                 </div>
                                 <div class="col-md-4">
                                     <strong>Max LTV:</strong> <span id="info-max-ltv">-</span>%
                                 </div>
                                 <div class="col-md-4">
-                                    <strong>Max Loan:</strong> <span id="info-max-loan">-</span> vBTC
+                                    <strong>Max Loan:</strong> <span id="info-max-loan">-</span> DPSV
                                 </div>
                             </div>
                         </div>
 
                         <div class="mb-4">
-                            <label for="loan_amount" class="form-label">Loan Amount (vBTC)</label>
+                            <label for="loan_amount" class="form-label">Loan Amount (DPSV)</label>
                             <input type="number" step="0.00000001" class="form-control" 
                                    name="loan_amount" id="loan_amount" required
                                    placeholder="Enter amount to borrow" 
@@ -111,35 +110,35 @@ function updateLoanInfo() {
     const nftSelect = document.getElementById('nft_id');
     const loanAmountInput = document.getElementById('loan_amount');
     const selected = nftSelect.selectedOptions[0];
-    
+
     if (selected && selected.value) {
         const nftValue = parseFloat(selected.dataset.value);
         const maxLtv = parseFloat(selected.dataset.ltv);
         const maxLoan = (nftValue * maxLtv) / 100;
-        
+
         // Update NFT info
         document.getElementById('info-value').textContent = nftValue.toFixed(8);
         document.getElementById('info-max-ltv').textContent = maxLtv.toFixed(1);
         document.getElementById('info-max-loan').textContent = maxLoan.toFixed(8);
         document.getElementById('nft-info').style.display = 'block';
-        
+
         // Update max attribute for loan amount
         loanAmountInput.max = maxLoan.toFixed(8);
-        
+
         // Update loan terms if amount is entered
         const loanAmount = parseFloat(loanAmountInput.value);
         if (loanAmount > 0) {
             const ltvRatio = (loanAmount / nftValue) * 100;
             const healthFactor = 100 - ltvRatio;
-            
+
             document.getElementById('calc-ltv').textContent = ltvRatio.toFixed(1);
             document.getElementById('calc-health').textContent = healthFactor.toFixed(1);
             document.getElementById('loan-terms').style.display = 'block';
-            
+
             // Color coding for risk levels
             const ltvSpan = document.getElementById('calc-ltv');
             const healthSpan = document.getElementById('calc-health');
-            
+
             if (ltvRatio > 80) {
                 ltvSpan.className = 'text-danger';
                 healthSpan.className = 'text-danger';
@@ -163,3 +162,191 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+```
+
+```python
+from django.shortcuts import render
+
+# Create your views here.
+```
+
+```html
+<p><strong>NFT Value:</strong> <span id="nft-value">{{ available_nfts.0.estimated_value|floatformat:6 }}</span> DPSV</p>
+<p><strong>Max Loan:</strong> <span id="max-loan">{{ available_nfts.0.estimated_value|mul:available_nfts.0.collection.max_ltv_ratio|div:100|floatformat:6 }}</span> DPSV</p>
+```
+
+```html
+<p class="text-center text-muted mb-4">Use your NFT as collateral to borrow DPSV</p>
+```
+
+```javascript
+document.getElementById('nft-value').textContent = value.toFixed(6) + ' DPSV';
+document.getElementById('max-loan').textContent = maxLoan.toFixed(6) + ' DPSV';
+```
+
+```replit_final_file
+{% extends 'base.html' %}
+
+{% block title %}Create Loan - Mosaical{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-coins me-2"></i>Create Loan
+                </h3>
+                <p class="text-muted mb-0">Use your NFT as collateral to borrow DPSV</p>
+            </div>
+            <div class="card-body">
+                {% if available_nfts %}
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="nft_id" class="form-label">Select NFT Collateral</label>
+                            <select class="form-select" name="nft_id" id="nft_id" required onchange="updateLoanInfo()">
+                                <option value="">Choose an NFT...</option>
+                                {% for nft in available_nfts %}
+                                    <option value="{{ nft.id }}" 
+                                            data-value="{{ nft.estimated_value }}"
+                                            data-ltv="{{ nft.collection.max_ltv_ratio }}"
+                                            data-name="{{ nft.collection.name }} #{{ nft.token_id }}"
+                                            data-utility="{{ nft.utility_score }}"
+                                            {% if request.GET.nft_id == nft.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ nft.collection.name }} #{{ nft.token_id }} - {{ nft.name }} ({{ nft.estimated_value }} DPSV)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- NFT Info Display -->
+                        <div id="nft-info" class="alert alert-info" style="display: none;">
+                            <h6><i class="fas fa-info-circle me-2"></i>Collateral Details</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>NFT Value:</strong> <span id="info-value">-</span> DPSV
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Max LTV:</strong> <span id="info-max-ltv">-</span>%
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Max Loan:</strong> <span id="info-max-loan">-</span> DPSV
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="loan_amount" class="form-label">Loan Amount (DPSV)</label>
+                            <input type="number" step="0.00000001" class="form-control" 
+                                   name="loan_amount" id="loan_amount" required
+                                   placeholder="Enter amount to borrow" 
+                                   onchange="updateLoanInfo()">
+                            <small class="text-muted">Maximum amount will be calculated based on LTV ratio</small>
+                        </div>
+
+                        <!-- Loan Terms Display -->
+                        <div id="loan-terms" class="alert alert-secondary" style="display: none;">
+                            <h6><i class="fas fa-calculator me-2"></i>Loan Terms</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Interest Rate:</strong> 5.00%/month
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>LTV Ratio:</strong> <span id="calc-ltv">-</span>%
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Health Factor:</strong> <span id="calc-health">-</span>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Interest compounds monthly. Monitor your health factor to avoid liquidation.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'loan_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-coins me-2"></i>Create Loan
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-images fa-4x text-muted mb-3"></i>
+                        <h4>No Available NFTs</h4>
+                        <p class="text-muted mb-4">You need to deposit NFTs first before creating loans</p>
+                        <a href="{% url 'deposit_nft' %}" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Deposit NFT
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateLoanInfo() {
+    const nftSelect = document.getElementById('nft_id');
+    const loanAmountInput = document.getElementById('loan_amount');
+    const selected = nftSelect.selectedOptions[0];
+
+    if (selected && selected.value) {
+        const nftValue = parseFloat(selected.dataset.value);
+        const maxLtv = parseFloat(selected.dataset.ltv);
+        const maxLoan = (nftValue * maxLtv) / 100;
+
+        // Update NFT info
+        document.getElementById('info-value').textContent = nftValue.toFixed(8);
+        document.getElementById('info-max-ltv').textContent = maxLtv.toFixed(1);
+        document.getElementById('info-max-loan').textContent = maxLoan.toFixed(8);
+        document.getElementById('nft-info').style.display = 'block';
+
+        // Update max attribute for loan amount
+        loanAmountInput.max = maxLoan.toFixed(8);
+
+        // Update loan terms if amount is entered
+        const loanAmount = parseFloat(loanAmountInput.value);
+        if (loanAmount > 0) {
+            const ltvRatio = (loanAmount / nftValue) * 100;
+            const healthFactor = 100 - ltvRatio;
+
+            document.getElementById('calc-ltv').textContent = ltvRatio.toFixed(1);
+            document.getElementById('calc-health').textContent = healthFactor.toFixed(1);
+            document.getElementById('loan-terms').style.display = 'block';
+
+            // Color coding for risk levels
+            const ltvSpan = document.getElementById('calc-ltv');
+            const healthSpan = document.getElementById('calc-health');
+
+            if (ltvRatio > 80) {
+                ltvSpan.className = 'text-danger';
+                healthSpan.className = 'text-danger';
+            } else if (ltvRatio > 60) {
+                ltvSpan.className = 'text-warning';
+                healthSpan.className = 'text-warning';
+            } else {
+                ltvSpan.className = 'text-success';
+                healthSpan.className = 'text-success';
+            }
+        }
+    } else {
+        document.getElementById('nft-info').style.display = 'none';
+        document.getElementById('loan-terms').style.display = 'none';
+    }
+}
+
+// Auto-calculate when page loads if NFT is pre-selected
+document.addEventListener('DOMContentLoaded', function() {
+    updateLoanInfo();
+});
+</script>
+{% endblock %}
+```Ok, let's continue.
