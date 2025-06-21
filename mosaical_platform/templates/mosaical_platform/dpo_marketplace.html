@@ -85,7 +85,7 @@
                                     </div>
                                     <div class="col-6">
                                         <small class="text-muted">Price</small>
-                                        <div class="fw-bold text-success">{{ dpo.current_price|floatformat:4 }} vBTC</div>
+                                        <div class="fw-bold text-success">{{ dpo.current_price|floatformat:4 }} DPSV</div>
                                     </div>
                                 </div>
 
@@ -136,7 +136,7 @@
                     <div class="border rounded p-2 mb-2">
                         <h6 class="mb-1">{{ dpo.original_nft.collection.name }} #{{ dpo.original_nft.token_id }}</h6>
                         <small class="text-muted d-block">{{ dpo.ownership_percentage }}% ownership</small>
-                        <small class="text-success">{{ dpo.current_price|floatformat:4 }} vBTC</small>
+                        <small class="text-success">{{ dpo.current_price|floatformat:4 }} DPSV</small>
                     </div>
                 {% empty %}
                     <p class="text-muted text-center">You don't own any DPO tokens</p>
@@ -168,7 +168,7 @@
                         <input type="number" name="ownership_percentage" class="form-control" min="1" max="100" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Price (vBTC)</label>
+                        <label class="form-label">Price (DPSV)</label>
                         <input type="number" name="price" class="form-control" step="0.00000001" min="0.00000001" required>
                     </div>
                     <button type="submit" class="btn btn-success w-100">
@@ -214,7 +214,7 @@ function buyDPO(dpoId) {
 }
 
 function updatePrice(dpoId) {
-    const newPrice = prompt('Enter new price (vBTC):');
+    const newPrice = prompt('Enter new price (DPSV):');
     if (newPrice) {
         const form = document.createElement('form');
         form.method = 'POST';

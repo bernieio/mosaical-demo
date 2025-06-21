@@ -27,7 +27,7 @@ urlpatterns = [
     path('ai/market-intelligence/', views.ai_market_intelligence, name='ai_market_intelligence'),
 
     path('logout/', views.logout_view, name='logout'),
-    path('switch-currency/', views.switch_currency, name='switch_currency'),
+    # path('switch-currency/', views.switch_currency, name='switch_currency'),  # Removed - DPSV only
     # Hidden faucet - no UI links to this
     path('hidden-faucet-vbtc-url/', views.hidden_faucet, name='hidden_faucet'),
 

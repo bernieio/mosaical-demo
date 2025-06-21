@@ -35,7 +35,7 @@ def register_view(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            UserProfile.objects.create(user=user, dpsv_balance=0, vnst_balance=0)
+            UserProfile.objects.create(user=user, dpsv_balance=0)
             username = form.cleaned_data.get('username')
             messages.success(request, f'Account created for {username}!')
             return redirect('login')
@@ -571,20 +571,8 @@ def logout_view(request):
     messages.success(request, 'You have been logged out successfully!')
     return redirect('home')
 
-@login_required
-def switch_currency(request):
-    """Switch between DPSV and VNST currencies"""
-    if request.method == 'POST':
-        new_currency = request.POST.get('currency')
-        if new_currency in ['DPSV', 'VNST']:
-            profile = request.user.userprofile
-            profile.preferred_currency = new_currency
-            profile.save()
-            messages.success(request, f'Currency switched to {new_currency}!')
-        else:
-            messages.error(request, 'Invalid currency selected!')
-    
-    return redirect('dashboard')
+# Currency switching removed - using DPSV only
+# To switch to vBTC: change model field name and get_currency_symbol() method
 
 
 

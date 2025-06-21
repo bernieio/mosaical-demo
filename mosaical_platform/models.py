@@ -6,35 +6,25 @@ import uuid
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    dpsv_balance = models.DecimalField(max_digits=20, decimal_places=8, default=0)  # Changed from vbtc_balance
-    vnst_balance = models.DecimalField(max_digits=20, decimal_places=8, default=0)  # Added VNST support
-    preferred_currency = models.CharField(max_length=10, choices=[('DPSV', 'DPSV'), ('VNST', 'VNST')], default='DPSV')
+    dpsv_balance = models.DecimalField(max_digits=20, decimal_places=8, default=0)  # Main balance - change to vbtc_balance if needed
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def get_balance(self):
-        """Get balance in preferred currency"""
-        if self.preferred_currency == 'VNST':
-            return self.vnst_balance
+        """Get DPSV balance (change return to vbtc_balance for vBTC)"""
         return self.dpsv_balance
     
     def add_balance(self, amount):
-        """Add amount to preferred currency balance"""
-        if self.preferred_currency == 'VNST':
-            self.vnst_balance += amount
-        else:
-            self.dpsv_balance += amount
+        """Add amount to DPSV balance"""
+        self.dpsv_balance += amount
     
     def subtract_balance(self, amount):
-        """Subtract amount from preferred currency balance"""
-        if self.preferred_currency == 'VNST':
-            self.vnst_balance -= amount
-        else:
-            self.dpsv_balance -= amount
+        """Subtract amount from DPSV balance"""
+        self.dpsv_balance -= amount
     
     def get_currency_symbol(self):
-        """Get currency symbol"""
-        return self.preferred_currency
+        """Get currency symbol (change to 'vBTC' if needed)"""
+        return 'DPSV'
 
     def __str__(self):
         return f"{self.user.username} - {self.get_balance()} {self.get_currency_symbol()}"
@@ -63,7 +53,7 @@ class NFTVault(models.Model):
     collection = models.ForeignKey(NFTCollection, on_delete=models.CASCADE)
     token_id = models.CharField(max_length=100)
     name = models.CharField(max_length=200)
-    estimated_value = models.DecimalField(max_digits=20, decimal_places=8)  # in DPSV/VNST
+    estimated_value = models.DecimalField(max_digits=20, decimal_places=8)  # in DPSV
     utility_score = models.IntegerField(default=50)  # 0-100
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DEPOSITED')
     deposit_date = models.DateTimeField(auto_now_add=True)
@@ -86,7 +76,7 @@ class Loan(models.Model):
 
     borrower = models.ForeignKey(User, on_delete=models.CASCADE)
     nft_collateral = models.ForeignKey(NFTVault, on_delete=models.CASCADE)
-    principal_amount = models.DecimalField(max_digits=20, decimal_places=8)  # DPSV/VNST borrowed
+    principal_amount = models.DecimalField(max_digits=20, decimal_places=8)  # DPSV borrowed
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)  # % per month
     current_debt = models.DecimalField(max_digits=20, decimal_places=8)
     ltv_ratio = models.DecimalField(max_digits=5, decimal_places=2)  # Current LTV %
@@ -102,16 +92,16 @@ class Loan(models.Model):
         return float(100 - current_ltv)
 
     def __str__(self):
-        return f"Loan #{self.id} - {self.borrower.username} - {self.principal_amount} vBTC"
+        return f"Loan #{self.id} - {self.borrower.username} - {self.principal_amount} DPSV"
 
 class YieldRecord(models.Model):
     nft = models.ForeignKey(NFTVault, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=20, decimal_places=8)  # DPSV/VNST yield
+    amount = models.DecimalField(max_digits=20, decimal_places=8)  # DPSV yield
     yield_date = models.DateTimeField(auto_now_add=True)
     applied_to_loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        return f"Yield {self.amount} vBTC for {self.nft}"
+        return f"Yield {self.amount} DPSV for {self.nft}"
 
 class DPOToken(models.Model):
     """DPO (Dynamic Partial Ownership) Token representing fractionalized NFT ownership"""
