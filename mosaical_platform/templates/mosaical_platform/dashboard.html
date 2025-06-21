@@ -63,7 +63,7 @@
                             0.00
                         {% endif %}
                     {% endwith %}
-                    <small class="d-block">vBTC</small>
+                    <small class="d-block">{{ profile.get_currency_symbol }}</small>
                 </h4>
                 <p class="text-muted mb-0">Collateral Value</p>
             </div>
@@ -237,25 +237,13 @@
                     <i class="fas fa-wallet fa-2x text-info mb-3"></i>
                     <h4 class="card-title">{{ profile.get_balance|floatformat:6 }}</h4>
                     <p class="text-muted">{{ profile.get_currency_symbol }} Balance</p>
-
-                    <!-- Currency Switch -->
-                    <form method="post" action="{% url 'switch_currency' %}" class="mt-2">
-                        {% csrf_token %}
-                        <div class="btn-group btn-group-sm" role="group">
-                            <input type="radio" class="btn-check" name="currency" id="dpsv" value="DPSV" {% if profile.preferred_currency == 'DPSV' %}checked{% endif %} onchange="this.form.submit()">
-                            <label class="btn btn-outline-primary" for="dpsv">DPSV</label>
-
-                            <input type="radio" class="btn-check" name="currency" id="vnst" value="VNST" {% if profile.preferred_currency == 'VNST' %}checked{% endif %} onchange="this.form.submit()">
-                            <label class="btn btn-outline-success" for="vnst">VNST</label>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="portfolio-metric-box">
                             <h4 class="text-primary mb-2">{{ total_nft_value|floatformat:2 }}</h4>
-                            <small class="text-muted d-block">vBTC</small>
+                            <small class="text-muted d-block">{{ profile.get_currency_symbol }}</small>
                             <small class="text-muted">Total NFT Value</small>
                         </div>
                     </div>
@@ -471,19 +459,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const performanceData = {
             labels: ['7 days ago', '6 days ago', '5 days ago', '4 days ago', '3 days ago', '2 days ago', 'Yesterday', 'Today'],
             datasets: [{
-                label: 'Portfolio Value (vBTC)',
+                label: 'Portfolio Value ({{ profile.get_currency_symbol }})',
                 data: [
                     {% with current_total=0 %}
                         {% for nft in user_nfts %}
                             {% if nft.estimated_value %}
-                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
-                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
-                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
-                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
-                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
-                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
-                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }},
-                                {{ current_total|add:nft.estimated_value|add:profile.vbtc_balance|floatformat:2 }}
+                                {{ current_total|add:nft.estimated_value|add:profile.get_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.get_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.get_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.get_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.get_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.get_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.get_balance|floatformat:2 }},
+                                {{ current_total|add:nft.estimated_value|add:profile.get_balance|floatformat:2 }}
                             {% endif %}
                         {% endfor %}
                     {% endwith %}
