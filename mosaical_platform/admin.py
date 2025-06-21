@@ -7,7 +7,7 @@ from .models import (
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'vbtc_balance', 'total_nfts', 'active_loans', 'created_at']
+    list_display = ['user', 'dpsv_balance', 'total_nfts', 'active_loans', 'created_at']
     list_filter = ['created_at']
     search_fields = ['user__username', 'user__email']
     readonly_fields = ['created_at', 'updated_at']
@@ -40,7 +40,7 @@ class NFTVaultAdmin(admin.ModelAdmin):
     
     def yield_potential(self, obj):
         from .utils import YieldCalculator
-        return f"{YieldCalculator.calculate_nft_yield(obj):.6f} vBTC/day"
+        return f"{YieldCalculator.calculate_nft_yield(obj):.6f} DPSV/day"
     yield_potential.short_description = 'Daily Yield'
 
 @admin.register(Loan)
