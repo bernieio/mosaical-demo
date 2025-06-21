@@ -230,6 +230,28 @@
             </div>
             <div class="card-body">
                 <div class="row">
+
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-wallet fa-2x text-info mb-3"></i>
+                    <h4 class="card-title">{{ profile.get_balance|floatformat:6 }}</h4>
+                    <p class="text-muted">{{ profile.get_currency_symbol }} Balance</p>
+
+                    <!-- Currency Switch -->
+                    <form method="post" action="{% url 'switch_currency' %}" class="mt-2">
+                        {% csrf_token %}
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="currency" id="dpsv" value="DPSV" {% if profile.preferred_currency == 'DPSV' %}checked{% endif %} onchange="this.form.submit()">
+                            <label class="btn btn-outline-primary" for="dpsv">DPSV</label>
+
+                            <input type="radio" class="btn-check" name="currency" id="vnst" value="VNST" {% if profile.preferred_currency == 'VNST' %}checked{% endif %} onchange="this.form.submit()">
+                            <label class="btn btn-outline-success" for="vnst">VNST</label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="portfolio-metric-box">
                             <h4 class="text-primary mb-2">{{ total_nft_value|floatformat:2 }}</h4>
@@ -321,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
             {% endfor %}
             {% if profile.vbtc_balance > 0 %}'vBTC Balance'{% endif %}
         ];
-        
+
         const portfolioData = [
             {% for nft in user_nfts %}
                 {{ nft.estimated_value|default:0 }},
@@ -378,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Loan #{{ loan.id }}',
             {% endfor %}
         ];
-        
+
         const loanData = [
             {% for loan in user_loans %}
                 {{ loan.ltv_ratio|default:0 }},

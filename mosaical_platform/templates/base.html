@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,28 +15,28 @@
             font-weight: normal;
             font-style: normal;
         }
-        
+
         @font-face {
             font-family: 'Aptos';
             src: url('/static/assets/Aptos-Display-Bold.ttf') format('truetype');
             font-weight: bold;
             font-style: normal;
         }
-        
+
         @font-face {
             font-family: 'Aptos';
             src: url('/static/assets/Aptos-Display-Italic.ttf') format('truetype');
             font-weight: normal;
             font-style: italic;
         }
-        
+
         @font-face {
             font-family: 'Aptos';
             src: url('/static/assets/Aptos-Display-Bold-Italic.ttf') format('truetype');
             font-weight: bold;
             font-style: italic;
         }
-        
+
         * {
             font-family: 'Aptos', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
@@ -408,7 +407,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle vbtc-balance" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-wallet me-1"></i>
-                                {{ user.userprofile.vbtc_balance|floatformat:4 }} vBTC
+                                {{ user.userprofile.get_balance|floatformat:6 }} {{ user.userprofile.get_currency_symbol }}
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{% url 'dashboard' %}">Profile</a></li>
@@ -460,3 +459,4 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+```This code modifies the template to display the user's balance using the `get_balance` and `get_currency_symbol` methods from the `userprofile` model.

@@ -35,7 +35,7 @@ def register_view(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            UserProfile.objects.create(user=user, vbtc_balance=0)
+            UserProfile.objects.create(user=user, dpsv_balance=0, vnst_balance=0)
             username = form.cleaned_data.get('username')
             messages.success(request, f'Account created for {username}!')
             return redirect('login')
@@ -139,7 +139,9 @@ def create_loan(request):
             max_loan = (nft.estimated_value * nft.collection.max_ltv_ratio) / 100
 
             if loan_amount > max_loan:
-                messages.error(request, f'Loan amount exceeds maximum allowed: {max_loan} vBTC')
+                profile = UserProfile.objects.get(user=request.user)
+                currency = profile.get_currency_symbol()
+                messages.error(request, f'Loan amount exceeds maximum allowed: {max_loan} {currency}')
                 return redirect('create_loan')
 
             # Create loan
@@ -157,9 +159,9 @@ def create_loan(request):
                 nft.status = 'COLLATERALIZED'
                 nft.save()
 
-                # Add vBTC to user balance
+                # Add DPSV/VNST to user balance
                 profile = UserProfile.objects.get(user=request.user)
-                profile.vbtc_balance += loan_amount
+                profile.add_balance(loan_amount)
                 profile.save()
 
                 # Record transaction
@@ -169,10 +171,11 @@ def create_loan(request):
                     amount=loan_amount,
                     related_nft=nft,
                     related_loan=loan,
-                    description=f'Created loan of {loan_amount} vBTC against {nft.collection.name} #{nft.token_id}'
+                    description=f'Created loan of {loan_amount} {profile.get_currency_symbol()} against {nft.collection.name} #{nft.token_id}'
                 )
 
-            messages.success(request, f'Loan of {loan_amount} vBTC created successfully!')
+            profile = UserProfile.objects.get(user=request.user)
+            messages.success(request, f'Loan of {loan_amount} {profile.get_currency_symbol()} created successfully!')
             return redirect('loan_list')
 
         except NFTVault.DoesNotExist:
@@ -214,12 +217,12 @@ def hidden_faucet(request):
         return render(request, 'mosaical_platform/faucet.html', {'can_claim': False})
 
     if request.method == 'POST':
-        faucet_amount = Decimal('10.0')  # 10 vBTC per claim
+        faucet_amount = Decimal('10.0')  # 10 DPSV per claim
 
         with transaction.atomic():
-            # Add vBTC to user balance
+            # Add DPSV to user balance
             profile, created = UserProfile.objects.get_or_create(user=request.user)
-            profile.vbtc_balance += faucet_amount
+            profile.add_balance(faucet_amount)
             profile.save()
 
             # Record faucet claim
@@ -234,10 +237,10 @@ def hidden_faucet(request):
                 user=request.user,
                 transaction_type='FAUCET_CLAIM',
                 amount=faucet_amount,
-                description=f'Claimed {faucet_amount} vBTC from faucet'
+                description=f'Claimed {faucet_amount} {profile.get_currency_symbol()} from faucet'
             )
 
-        messages.success(request, f'Successfully claimed {faucet_amount} vBTC!')
+        messages.success(request, f'Successfully claimed {faucet_amount} {profile.get_currency_symbol()}!')
         return redirect('dashboard')
 
     return render(request, 'mosaical_platform/faucet.html', {'can_claim': True})
@@ -262,6 +265,7 @@ def create_dpo(request):
         nft_id = request.POST.get('nft_id')
         ownership_percentage = Decimal(request.POST.get('ownership_percentage'))
         price = Decimal(request.POST.get('price'))
+        profile = UserProfile.objects.get(user=request.user)
 
         nft = get_object_or_404(NFTVault, id=nft_id, owner=request.user)
 
@@ -308,17 +312,18 @@ def buy_dpo(request):
             return redirect('dpo_marketplace')
 
         profile = request.user.userprofile
-        if profile.vbtc_balance < dpo.current_price:
-            messages.error(request, 'Insufficient vBTC balance')
+        if profile.get_balance() < dpo.current_price:
+            currency = profile.get_currency_symbol()
+            messages.error(request, f'Insufficient {currency} balance')
             return redirect('dpo_marketplace')
 
         with transaction.atomic():
             # Transfer payment
-            profile.vbtc_balance -= dpo.current_price
+            profile.subtract_balance(dpo.current_price)
             profile.save()
 
             seller_profile = dpo.owner.userprofile
-            seller_profile.vbtc_balance += dpo.current_price
+            seller_profile.add_balance(dpo.current_price)
             seller_profile.save()
 
             # Transfer ownership
@@ -386,7 +391,9 @@ def refinance_loan(request):
             new_total_debt = loan.current_debt + additional_amount
 
             if new_total_debt > max_total_loan:
-                messages.error(request, f'Total debt would exceed maximum: {max_total_loan:.6f} vBTC')
+                profile = UserProfile.objects.get(user=request.user)
+                currency = profile.get_currency_symbol()
+                messages.error(request, f'Total debt would exceed maximum: {max_total_loan:.6f} {currency}')
                 return redirect('loan_list')
 
             with transaction.atomic():
@@ -407,7 +414,7 @@ def refinance_loan(request):
                 # Add additional funds to user if any
                 if additional_amount > 0:
                     profile = UserProfile.objects.get(user=request.user)
-                    profile.vbtc_balance += additional_amount
+                    profile.add_balance(additional_amount)
                     profile.save()
 
                 # Record transaction
@@ -444,13 +451,14 @@ def repay_loan(request):
                 messages.error(request, 'Invalid repayment amount!')
                 return redirect('loan_list')
 
-            if profile.vbtc_balance < repay_amount:
-                messages.error(request, 'Insufficient vBTC balance!')
+            if profile.get_balance() < repay_amount:
+                currency = profile.get_currency_symbol()
+                messages.error(request, f'Insufficient {currency} balance!')
                 return redirect('loan_list')
 
             with transaction.atomic():
                 # Deduct from user balance
-                profile.vbtc_balance -= repay_amount
+                profile.subtract_balance(repay_amount)
                 profile.save()
 
                 # Update loan debt
@@ -473,13 +481,14 @@ def repay_loan(request):
                     amount=repay_amount,
                     related_nft=loan.nft_collateral,
                     related_loan=loan,
-                    description=f'Repaid {repay_amount} vBTC for loan #{loan.id}'
+                    description=f'Repaid {repay_amount} {profile.get_currency_symbol()} for loan #{loan.id}'
                 )
 
+            currency = profile.get_currency_symbol()
             if loan.status == 'REPAID':
                 messages.success(request, f'Loan #{loan.id} fully repaid! NFT collateral released.')
             else:
-                messages.success(request, f'Partial repayment of {repay_amount} vBTC completed.')
+                messages.success(request, f'Partial repayment of {repay_amount} {currency} completed.')
 
         except Loan.DoesNotExist:
             messages.error(request, 'Invalid loan selected!')
@@ -562,6 +571,21 @@ def logout_view(request):
     messages.success(request, 'You have been logged out successfully!')
     return redirect('home')
 
+@login_required
+def switch_currency(request):
+    """Switch between DPSV and VNST currencies"""
+    if request.method == 'POST':
+        new_currency = request.POST.get('currency')
+        if new_currency in ['DPSV', 'VNST']:
+            profile = request.user.userprofile
+            profile.preferred_currency = new_currency
+            profile.save()
+            messages.success(request, f'Currency switched to {new_currency}!')
+        else:
+            messages.error(request, 'Invalid currency selected!')
+    
+    return redirect('dashboard')
+
 
 
 @login_required
@@ -584,7 +608,9 @@ def swap_collateral(request):
             # Check if new NFT can support current debt
             max_loan = (new_nft.estimated_value * new_nft.collection.max_ltv_ratio) / 100
             if loan.current_debt > max_loan:
-                messages.error(request, f'New NFT cannot support current debt. Max: {max_loan:.6f} vBTC')
+                profile = UserProfile.objects.get(user=request.user)
+                currency = profile.get_currency_symbol()
+                messages.error(request, f'New NFT cannot support current debt. Max: {max_loan:.6f} {currency}')
                 return redirect('loan_list')
 
             with transaction.atomic():

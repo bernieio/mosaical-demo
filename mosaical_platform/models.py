@@ -6,12 +6,38 @@ import uuid
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    vbtc_balance = models.DecimalField(max_digits=20, decimal_places=8, default=0)
+    dpsv_balance = models.DecimalField(max_digits=20, decimal_places=8, default=0)  # Changed from vbtc_balance
+    vnst_balance = models.DecimalField(max_digits=20, decimal_places=8, default=0)  # Added VNST support
+    preferred_currency = models.CharField(max_length=10, choices=[('DPSV', 'DPSV'), ('VNST', 'VNST')], default='DPSV')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_balance(self):
+        """Get balance in preferred currency"""
+        if self.preferred_currency == 'VNST':
+            return self.vnst_balance
+        return self.dpsv_balance
+    
+    def add_balance(self, amount):
+        """Add amount to preferred currency balance"""
+        if self.preferred_currency == 'VNST':
+            self.vnst_balance += amount
+        else:
+            self.dpsv_balance += amount
+    
+    def subtract_balance(self, amount):
+        """Subtract amount from preferred currency balance"""
+        if self.preferred_currency == 'VNST':
+            self.vnst_balance -= amount
+        else:
+            self.dpsv_balance -= amount
+    
+    def get_currency_symbol(self):
+        """Get currency symbol"""
+        return self.preferred_currency
+
     def __str__(self):
-        return f"{self.user.username} - {self.vbtc_balance} vBTC"
+        return f"{self.user.username} - {self.get_balance()} {self.get_currency_symbol()}"
 
 class NFTCollection(models.Model):
     name = models.CharField(max_length=200)
@@ -37,7 +63,7 @@ class NFTVault(models.Model):
     collection = models.ForeignKey(NFTCollection, on_delete=models.CASCADE)
     token_id = models.CharField(max_length=100)
     name = models.CharField(max_length=200)
-    estimated_value = models.DecimalField(max_digits=20, decimal_places=8)  # in vBTC
+    estimated_value = models.DecimalField(max_digits=20, decimal_places=8)  # in DPSV/VNST
     utility_score = models.IntegerField(default=50)  # 0-100
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DEPOSITED')
     deposit_date = models.DateTimeField(auto_now_add=True)
@@ -60,7 +86,7 @@ class Loan(models.Model):
 
     borrower = models.ForeignKey(User, on_delete=models.CASCADE)
     nft_collateral = models.ForeignKey(NFTVault, on_delete=models.CASCADE)
-    principal_amount = models.DecimalField(max_digits=20, decimal_places=8)  # vBTC borrowed
+    principal_amount = models.DecimalField(max_digits=20, decimal_places=8)  # DPSV/VNST borrowed
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)  # % per month
     current_debt = models.DecimalField(max_digits=20, decimal_places=8)
     ltv_ratio = models.DecimalField(max_digits=5, decimal_places=2)  # Current LTV %
@@ -80,7 +106,7 @@ class Loan(models.Model):
 
 class YieldRecord(models.Model):
     nft = models.ForeignKey(NFTVault, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=20, decimal_places=8)  # vBTC yield
+    amount = models.DecimalField(max_digits=20, decimal_places=8)  # DPSV/VNST yield
     yield_date = models.DateTimeField(auto_now_add=True)
     applied_to_loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -134,7 +160,7 @@ class FaucetClaim(models.Model):
     claimed_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Faucet claim: {self.user.username} - {self.amount} vBTC"
+        return f"Faucet claim: {self.user.username} - {self.amount} DPSV"
 
 class SystemSettings(models.Model):
     key = models.CharField(max_length=100, unique=True)
