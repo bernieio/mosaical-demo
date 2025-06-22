@@ -4,6 +4,33 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.portfolio-metric-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    transition: transform 0.3s ease;
+}
+
+.portfolio-metric-box:hover {
+    transform: translateY(-5px);
+}
+
+.portfolio-metric-box h4 {
+    font-weight: bold;
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.portfolio-metric-box small {
+    color: rgba(255, 255, 255, 0.8);
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -242,21 +269,21 @@
         </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="portfolio-metric-box">
-                            <h4 class="text-primary mb-2">{{ total_nft_value|floatformat:2 }}</h4>
-                            <small class="text-muted d-block">{{ profile.get_currency_symbol }}</small>
+                            <h4 class="text-primary mb-2">{{ total_nft_value|default:"0.00"|floatformat:2 }}</h4>
+                            <small class="text-muted d-block">DPSV</small>
                             <small class="text-muted">Total NFT Value</small>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="portfolio-metric-box">
-                            <h4 class="text-success mb-2">{{ profile.vbtc_balance|floatformat:4 }}</h4>
+                            <h4 class="text-success mb-2">{{ profile.vbtc_balance|default:"0.0000"|floatformat:4 }}</h4>
                             <small class="text-muted d-block">DPSV</small>
                             <small class="text-muted">Available Balance</small>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                         <div class="portfolio-metric-box">
-                            <h4 class="text-warning mb-2">{{ total_debt|floatformat:4 }}</h4>
+                            <h4 class="text-warning mb-2">{{ total_debt|default:"0.0000"|floatformat:4 }}</h4>
                             <small class="text-muted d-block">DPSV</small>
                             <small class="text-muted">Total Debt</small>
                         </div>
